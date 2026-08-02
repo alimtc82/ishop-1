@@ -1,0 +1,1 @@
+{"bundles":[{"asset":"aa472cb819a8aa82deb0836576a0604e667194b59fdd8a99beb742516f6620c1.tar.gz","format":"tar"},{"asset":"273fb8caa3c29d4758c4208049797db65753bf8b3dfec381859312b34ce60a74.eszip","format":"eszip2"}],"routes":[],"post_cache_routes":[],"bundler_version":"14.10.3","layers":[],"import_map":"netlify:import-map","function_config":{},"bundling_timing":{"tarball_ms":496}}

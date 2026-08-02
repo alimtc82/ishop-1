@@ -1,0 +1,4 @@
+-- Applied to production in V11.82.10.
+-- purchase_invoice_items.line_total is GENERATED ALWAYS as quantity * unit_cost.
+-- post_purchase_invoice_tx must NOT explicitly insert a value into line_total.
+-- The production function was updated accordingly through Supabase migration.
