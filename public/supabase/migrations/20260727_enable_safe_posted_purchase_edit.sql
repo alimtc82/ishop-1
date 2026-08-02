@@ -1,3 +1,0 @@
--- Applied to production in V12.1.
--- Adds edit_posted_purchase_invoice_tx for safe transactional editing of posted purchase invoices.
--- The live function reverses the original stock/accounting effects, validates no returns/settlements/serial movement, then reapplies the edited invoice atomically.
