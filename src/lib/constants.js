@@ -15,7 +15,7 @@
 //  ⚠️ يظهر في واجهة الموظفين (StaffShell) وشاشة الدخول (Login).
 //  ⚠️ كل رقم بيتسجّل بسطر في CHANGELOG.md.
 // ════════════════════════════════════════════════════════════════
-export const APP_VERSION = 'V14.2.2';
+export const APP_VERSION = 'V14.2.3';
 
 export const PAGE_SIZE = 30;
 export const IDLE_MINUTES = 20;
