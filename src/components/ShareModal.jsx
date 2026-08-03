@@ -23,7 +23,7 @@ export default function ShareModal({ open, url, onClose }) {
     }
   }
 
-  const wa = 'https://wa.me/?text=' + encodeURIComponent('📱 iShop — نتائج البحث:\n' + url);
+  const wa = 'https://wa.me/?text=' + encodeURIComponent('📱 APP TECH — نتائج البحث:\n' + url);
 
   return (
     <Modal

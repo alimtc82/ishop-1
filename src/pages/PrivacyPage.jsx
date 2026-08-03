@@ -81,7 +81,7 @@ export default function PrivacyPage({ focusDeletion = false }) {
 
               {isDelete && support && (
                 <a
-                  href={`https://wa.me/${support.whatsapp}?text=${encodeURIComponent('أرغب في حذف بياناتي من iShop')}`}
+                  href={`https://wa.me/${support.whatsapp}?text=${encodeURIComponent('أرغب في حذف بياناتي من APP TECH')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-sm font-black text-on-accent transition hover:brightness-105 active:scale-[.99]"

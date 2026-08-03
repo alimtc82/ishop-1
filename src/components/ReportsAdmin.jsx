@@ -116,7 +116,7 @@ export default function ReportsAdmin({initialType='profit',standalone=false}){
    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['السند','التاريخ','العميل','الخزينة','الفرع','المستخدم','المبلغ'],...userReport.collections.map(x=>[x.movement_number||x.id,x.movement_date,x.party_name||'',x.treasuries?.name||'',x.treasuries?.branch||'',userReport.userName(x.created_by||x.user_id||x.auth_id),n(x.amount)])]),'تحصيلات العملاء');
    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['الفاتورة','التاريخ','العميل','الفرع','المستخدم','الإجمالي','غير المحصل'],...userReport.uncollected.map(x=>[x.invoice_number,x.invoice_date,x.customer_name||'عميل نقدي',x.branch||'',userReport.userName(x.created_by),n(x.total),n(x.remaining)])]),'غير محصل');
   }else XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([finalReport.head,...finalReport.rows]),'التقرير');
-  XLSX.writeFile(wb,`iShop_${type}_Report.xlsx`)
+  XLSX.writeFile(wb,`APPTECH_${type}_Report.xlsx`)
  };
  const printReport=()=>window.print();
  return <div className="space-y-5"><div><h1 className="text-2xl font-black text-accent">تقارير ERP</h1><p className="mt-1 text-sm text-muted">كل التقارير تخضع للفترة والفرع والمستخدم، مع احترام الفروع المسموحة للمستخدم الحالي.</p></div>

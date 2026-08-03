@@ -163,7 +163,7 @@ export default function SupportModal({ open, onClose }) {
                         className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-start transition hover:border-accent-line">
                   <span className="text-2xl">🛠️</span>
                   <span className="text-sm font-bold text-text">
-                    اشتريت جهاز من iShop ومحتاج دعم فني
+                    اشتريت جهاز من APP TECH ومحتاج دعم فني
                   </span>
                 </button>
                 <button type="button" onClick={() => setStep('buy')}
@@ -255,7 +255,7 @@ export default function SupportModal({ open, onClose }) {
               <div>
                 <h3 className="text-lg font-black text-text">تم إرسال طلب سيادتكم بنجاح</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
-                  وسيتم الرد بأسرع وقت. نشكركم على ثقتكم في iShop 🤝
+                  وسيتم الرد بأسرع وقت. نشكركم على ثقتكم في APP TECH 🤝
                 </p>
               </div>
               <button type="button" onClick={onClose}

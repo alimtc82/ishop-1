@@ -116,7 +116,7 @@ export default function WarrantyPage() {
           شراء آيفون مستعمل لا يجب أن يكون مخاطرة.
         </p>
         <p className="rise rise-2 text-[15px] leading-[1.9] text-muted">
-          في iShop، اخترنا أن نجعل تجربة شراء الأجهزة المستعملة أكثر أمانًا ووضوحًا، من خلال خبرة
+          في APP TECH، اخترنا أن نجعل تجربة شراء الأجهزة المستعملة أكثر أمانًا ووضوحًا، من خلال خبرة
           حقيقية في سوق الهواتف وفحص شامل لكل جهاز قبل عرضه للبيع.
         </p>
         <blockquote className="rise rise-3 relative rounded-3xl border border-accent-line bg-accent-soft/50 px-6 py-7 text-center">
@@ -141,7 +141,7 @@ export default function WarrantyPage() {
       <section className="my-8 overflow-hidden rounded-3xl border border-accent-line px-6 py-10 text-center"
                style={{ background: 'linear-gradient(180deg, var(--accent-soft), transparent)' }}>
         <h2 className="text-2xl font-black">اطمن على <span className="gold-text">ضمانك</span></h2>
-        <p className="mt-2 text-sm text-muted">لو اشتريت من iShop، اعرف حالة ضمان جهازك في ثانية.</p>
+        <p className="mt-2 text-sm text-muted">لو اشتريت من APP TECH، اعرف حالة ضمان جهازك في ثانية.</p>
         <Button className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 text-[15px]" onClick={openModal}>
           <Icon name="warranty" size={17} />
           لمتابعة ضمانك اضغط هنا
@@ -207,7 +207,7 @@ function WarrantyResult({ result, onHome }) {
     return (
       <Box tone="good">
         {hi}<br />
-        جهازك {result.model ? <b>«{result.model}»</b> : ''} لسه مغطى بضمان iShop<br />
+        جهازك {result.model ? <b>«{result.model}»</b> : ''} لسه مغطى بضمان APP TECH<br />
         حتى <b>{fmtDate(result.expires_at)}</b> — ومتبقّي <b className="num">{result.days_left}</b> يوم.
       </Box>
     );
@@ -216,7 +216,7 @@ function WarrantyResult({ result, onHome }) {
   return (
     <Box tone="warn">
       {hi}<br />
-      ⏳ الـ 30 يوم ضمان iShop خلصوا{result.model ? <> على جهازك <b>«{result.model}»</b></> : ''} — بس إحنا برضه معاك.
+      ⏳ الـ 30 يوم ضمان APP TECH خلصوا{result.model ? <> على جهازك <b>«{result.model}»</b></> : ''} — بس إحنا برضه معاك.
       <br />ارجع للصفحة الرئيسية وتواصل معانا من خلال زر <b>الدعم الفني</b>.
       <button type="button" onClick={onHome}
               className="mt-3 block w-full rounded-xl border border-accent-line bg-accent-soft px-4 py-2.5

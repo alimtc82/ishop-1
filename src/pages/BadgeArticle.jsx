@@ -158,9 +158,9 @@ export default function BadgeArticle({ badgeKey }) {
           <div className="mb-4 text-center">
             <h2 className="text-2xl font-black">شوف الفرق <span className="gold-text">بنفسك</span></h2>
             <p className="mt-1.5 text-xs text-muted">
-              صور توضيحية — <span className="font-bold text-danger">أحمر: حالات من خارج iShop</span>
+              صور توضيحية — <span className="font-bold text-danger">أحمر: حالات من خارج APP TECH</span>
               {' · '}
-              <span className="font-bold text-[var(--mtc-success)]">أخضر: من iShop</span>
+              <span className="font-bold text-[var(--mtc-success)]">أخضر: من APP TECH</span>
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">

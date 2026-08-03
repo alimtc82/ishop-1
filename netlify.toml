@@ -1,9 +1,12 @@
-# إعدادات Netlify — ترجمة أمينة لـ vercel.json
-# الملفين بيتعايشوا مع بعض: كل منصة بتتجاهل ملف التانية.
+# APP TECH — إعدادات النشر على Netlify
+# البناء: Vite → dist
 
 [build]
   command = "npm run build"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 # ── SPA fallback ──
 # أي مسار مش موجود كملف حقيقي بيروح لـ index.html (status 200 = rewrite مش redirect).
@@ -40,3 +43,8 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# ── Edge function لبطاقات مشاركة الأجهزة ──
+[[edge_functions]]
+  function = "device-og"
+  path = "/d/*"

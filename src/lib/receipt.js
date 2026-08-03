@@ -50,7 +50,7 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>إذن تسليم جهاز — iShop</title>
+<title>إذن تسليم جهاز — APP TECH</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -121,7 +121,7 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
         <p>تم تسليم الجهاز بحالته المذكورة أعلاه، وأقر المستلم بمعاينته والموافقة عليه.</p>
       </div>
 
-      <div class="seal"><img src="${stampUrl}" alt="ختم iShop" /></div>
+      <div class="seal"><img src="${stampUrl}" alt="ختم APP TECH" /></div>
 
       <div class="sig-row">
         <div class="sig-box"><div class="sig-line"></div><div class="sig-label">توقيع المُسلِّم</div></div>

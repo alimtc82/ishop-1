@@ -274,7 +274,7 @@ export async function deleteDeviceImage(url) {
   await supabase.storage.from(BUCKET).remove([path]);
 }
 
-// ── الصور التوضيحية لصفحات الشارات (ليه iShop) ────────────────
+// ── الصور التوضيحية لصفحات الشارات (ليه APP TECH) ────────────────
 // نفس باكت device-images بمسار illustrations/ (صلاحياته موجودة)
 export async function uploadIllustration(file, badgeKey) {
   const compressed = await compressImage(file);
@@ -415,7 +415,7 @@ export async function signInCustomerWithFacebook() {
 export async function ensureCustomerProfile(user) {
   if (!user?.id) throw new Error('جلسة Facebook غير صالحة');
   const meta = user.user_metadata || {};
-  const displayName = meta.full_name || meta.name || meta.user_name || user.email?.split('@')[0] || 'عميل iShop';
+  const displayName = meta.full_name || meta.name || meta.user_name || user.email?.split('@')[0] || 'عميل APP TECH';
   const avatarUrl = meta.avatar_url || meta.picture || null;
   const row = {
     auth_user_id: user.id,

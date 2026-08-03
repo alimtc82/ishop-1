@@ -15,7 +15,7 @@ import { brandIcon, getBrand, isIphone } from '../lib/brands';
 
 // ══ صفحة معرض الأجهزة المستعملة ═══════════════════════════════
 // صفحة مستقلة (route: /used) بترجع بالكامل زي ما كانت الرئيسية
-// قبل V11.49، بس دلوقتي كصفحة فرعية جوه متجر iShop. الدخول السري
+// قبل V11.49، بس دلوقتي كصفحة فرعية جوه متجر APP TECH. الدخول السري
 // للموظفين اتنقل لهوم المتجر — فاللوجو هنا بيرجّع للمتجر عادي.
 // ══ نظرة على المخزون — بيانات حقيقية ═════════════════════════
 function useStock() {
@@ -145,7 +145,7 @@ export default function UsedShowcase() {
     <div className="relative z-1 mx-auto max-w-5xl px-5">
       {/* ══ الشريط ══ */}
       <nav className="flex items-center justify-between py-4">
-        <button type="button" onClick={() => navigate('/')} aria-label="متجر iShop"
+        <button type="button" onClick={() => navigate('/')} aria-label="متجر APP TECH"
                 className="flex select-none items-center gap-2.5 outline-none">
           <span className="grid size-9 place-items-center rounded-xl border-2 border-accent
                            bg-accent-soft text-accent">
@@ -237,7 +237,7 @@ export default function UsedShowcase() {
         <div className="rise rise-2 relative mx-auto w-full max-w-[320px] md:order-2 md:max-w-none">
           <div className="absolute inset-[-14%] -z-1 rounded-full blur-3xl"
                style={{ background: 'radial-gradient(circle, var(--accent-soft), transparent 62%)' }} />
-          <img src="/hero.jpg" alt="أجهزة iShop — موبايلات وساعات ولابتوبات"
+          <img src="/hero.jpg" alt="أجهزة APP TECH — موبايلات وساعات ولابتوبات"
                width="807" height="860"
                className="float-slow w-full rounded-3xl" fetchPriority="high" />
         </div>

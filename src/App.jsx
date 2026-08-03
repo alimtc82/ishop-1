@@ -74,7 +74,7 @@ function AppShell() {
     // يبقى autoGuestDone=true فنرجّع اللاندينج عادي.
     if (isDeviceLink && !autoGuestDone.current) return <Splash />;
 
-    // صفحات \"ليه iShop\" (الشارات) — /why/:key
+    // صفحات \"ليه APP TECH\" (الشارات) — /why/:key
     const whyMatch = location.pathname.match(/^\/why\/([a-zA-Z]+)/);
     if (whyMatch) {
       return (

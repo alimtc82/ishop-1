@@ -1,4 +1,4 @@
-import { useCallback,useEffect,useRef,useState } from 'react';
+import { Fragment,useCallback,useEffect,useRef,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeToggle } from '../components/ThemePanel';
@@ -29,13 +29,16 @@ export default function Landing({onStaffLogin}){
  const {enterGuest}=useAuth();
  const [products,setProducts]=useState([]),[searchProducts,setSearchProducts]=useState([]),[stockMovements,setStockMovements]=useState([]),[recentProducts,setRecentProducts]=useState([]),[cats,setCats]=useState([]),[used,setUsed]=useState([]);
  const [search,setSearch]=useState(''),[searchOpen,setSearchOpen]=useState(false);
+ const [layout,setLayout]=useState({only_in_stock_categories:true,sections:[]}),[offersMap,setOffersMap]=useState(new Map()),[featured,setFeatured]=useState([]),[offerProducts,setOfferProducts]=useState([]);
  useEffect(()=>{Promise.all([
-  supabase.from('products').select('id,sku,barcode,name,images,category_id,brand_id,sale_price,created_at,product_brands(name)').eq('is_active',true),
-  supabase.from('product_categories').select('id,name,image_path').eq('is_active',true).order('id',{ascending:false}),
+  supabase.from('products').select('id,sku,barcode,name,images,category_id,brand_id,sale_price,created_at,sort_order,is_featured,featured_order,product_brands(name)').eq('is_active',true).order('sort_order'),
+  supabase.from('product_categories').select('id,name,image_path,sort_order').eq('is_active',true).order('sort_order'),
   fetchDevices({guest:true}),
   supabase.from('storefront_positive_stock').select('product_id,available_stock'),
-  supabase.from('product_movements').select('product_id,movement_type,quantity,branch,created_at')
- ]).then(([p,c,d,sv,m])=>{
+  supabase.from('product_movements').select('product_id,movement_type,quantity,branch,created_at'),
+  supabase.from('site_settings').select('value').eq('key','storefront_layout').maybeSingle(),
+  supabase.from('storefront_active_offers').select('*').order('sort_order')
+ ]).then(([p,c,d,sv,m,lay,off])=>{
   const all=p.data||[],publicStock=sv.data||[],movements=m.data||[];
   const stockMap=new Map(publicStock.map(x=>[String(x.product_id),Number(x.available_stock||0)]));
   setStockMovements(movements);
@@ -44,8 +47,36 @@ export default function Landing({onStaffLogin}){
   setSearchProducts(stocked);setProducts(stocked);
   const ins=new Map();for(const mv of movements){if(['purchase','transfer_in','adjustment_in','opening','opening_stock','opening_balance'].includes(String(mv.movement_type||'').toLowerCase())){const k=String(mv.product_id),v=String(mv.created_at||'');if(v>(ins.get(k)||''))ins.set(k,v)}}
   setRecentProducts([...stocked].sort((a,b)=>(ins.get(String(b.id))||String(b.created_at||'')).localeCompare(ins.get(String(a.id))||String(a.created_at||''))).slice(0,8));
-  setCats((c.data||[]).sort((a,b)=>Number(Boolean(b.image_path))-Number(Boolean(a.image_path))).slice(0,8));setUsed(d||[]);
+  const L=lay?.data?.value||{only_in_stock_categories:true,sections:[]};setLayout(L);
+  const om=indexOffers(off?.data||[]);setOffersMap(om);
+  setFeatured(stocked.filter(x=>x.is_featured).sort((a,b)=>(a.featured_order||0)-(b.featured_order||0)).slice(0,8));
+  setOfferProducts((off?.data||[]).map(o=>stocked.find(x=>String(x.id)===String(o.product_id))).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).slice(0,8));
+  const withStock=new Set(stocked.map(x=>String(x.category_id)));
+  let catList=(c.data||[]);
+  if(L.only_in_stock_categories!==false)catList=catList.filter(x=>withStock.has(String(x.id)));
+  setCats(catList.slice(0,8));setUsed(d||[]);
  }).catch(()=>{})},[]);
+
+ // كارت منتج مع دعم الخصم (السعر الأصلي مشطوب + نسبة الخصم)
+ const ProductCard=({p,cta='عرض المنتج'})=>{
+  const offer=pickOffer(offersMap.get(String(p.id)),null);
+  const r=applyOffer(p.sale_price,offer);
+  return <button type="button" key={p.id} onClick={()=>navigate(`/product/${p.id}`)} className="relative overflow-hidden rounded-2xl border border-border bg-card text-start transition active:scale-[.99]" aria-label={`عرض ${p.name}`}>
+   {r.hasDiscount&&<span className="absolute end-2 top-2 z-10 rounded-full bg-danger px-2 py-1 text-[11px] font-black text-white shadow">-{r.percent}%</span>}
+   <div className="aspect-square bg-surface">{p.images?.[0]?<img src={publicMediaUrl('product-images',p.images[0])} className="size-full object-cover" alt={p.name} onError={e=>{e.currentTarget.style.display='none'}}/>:<div className="grid size-full place-items-center text-5xl opacity-30">📦</div>}</div>
+   <div className="p-3">
+    <p className="text-[10px] font-bold text-muted">{p.product_brands?.name||'APP TECH'}</p>
+    <h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-black">{p.name}</h3>
+    {Number(p.sale_price||0)>0&&<div className="mt-1 flex flex-wrap items-baseline gap-2">
+     {r.hasDiscount&&<span className="text-xs text-muted line-through">{r.original.toLocaleString()}</span>}
+     <b className={`text-sm ${r.hasDiscount?'text-danger':'text-accent'}`}>{r.final.toLocaleString()}</b>
+    </div>}
+    <span className="mt-3 block w-full rounded-xl border border-accent-line bg-accent-soft py-2 text-center text-xs font-black text-accent">{cta}</span>
+   </div>
+  </button>;
+ };
+ const sectionOn=id=>{const arr=layout.sections||[];const f=arr.find(x=>x.id===id);return f?f.enabled!==false:true};
+ const sectionOrder=id=>{const arr=layout.sections||[];const i=arr.findIndex(x=>x.id===id);return i<0?99:i};
  const goUsed=()=>navigate('/used');
  const q=search.trim().toLocaleLowerCase('ar-EG');
  const searchResults=q?[
@@ -63,7 +94,7 @@ export default function Landing({onStaffLogin}){
   <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-xl">
    <div className="mx-auto max-w-7xl px-4">
     <div className="flex min-h-16 items-center gap-2 py-2">
-     <button onClick={onLogoTap} className="shrink-0 text-2xl font-black text-accent" aria-label="iShop">i<span className="text-text">Shop</span></button>
+     <button onClick={onLogoTap} className="shrink-0 text-2xl font-black text-accent" aria-label="APP TECH">i<span className="text-text">Shop</span></button>
      <div className="relative min-w-0 flex-1 md:max-w-md">
       <div className="flex items-center rounded-xl border border-border bg-surface px-3 focus-within:border-accent">
        <Icon name="search" size={17}/>
@@ -87,15 +118,18 @@ export default function Landing({onStaffLogin}){
   <NewsTicker/>
 
   <main id="home" className="mx-auto max-w-7xl px-4 pb-8">
-   <section className="relative my-5 overflow-hidden rounded-[28px] border border-border bg-card md:my-8"><div className="md:grid md:min-h-[360px] md:grid-cols-2 md:items-center"><div className="relative z-10 p-7 md:p-12"><h1 className="text-4xl font-black leading-tight md:text-6xl">كل احتياجاتك<br/><span className="gold-text">التقنية في مكان واحد</span></h1><p className="mt-4 max-w-xl leading-7 text-muted">موبايلات، إكسسوارات ومنتجات مختارة، بالإضافة إلى قسم مستقل للأجهزة المستعملة الموثقة.</p><div className="mt-6 flex flex-wrap gap-3"><a href="#products" className="rounded-xl bg-accent px-6 py-3 text-sm font-black text-on-accent">تسوق الآن</a><button onClick={goUsed} className="rounded-xl border border-border bg-surface px-6 py-3 text-sm font-black">الأجهزة المستعملة</button></div></div><div className="relative overflow-hidden border-t border-border md:h-full md:min-h-[360px] md:border-t-0"><img src="/hero.jpg" alt="iShop" className="block w-full object-contain md:absolute md:inset-0 md:h-full md:w-full md:object-cover"/><div className="absolute inset-0 hidden bg-gradient-to-l from-transparent via-transparent to-card md:block"/></div></div></section>
+   <section className="relative my-5 overflow-hidden rounded-[28px] border border-border bg-card md:my-8"><div className="md:grid md:min-h-[360px] md:grid-cols-2 md:items-center"><div className="relative z-10 p-7 md:p-12"><h1 className="text-4xl font-black leading-tight md:text-6xl">كل احتياجاتك<br/><span className="gold-text">التقنية في مكان واحد</span></h1><p className="mt-4 max-w-xl leading-7 text-muted">موبايلات، إكسسوارات ومنتجات مختارة، بالإضافة إلى قسم مستقل للأجهزة المستعملة الموثقة.</p><div className="mt-6 flex flex-wrap gap-3"><a href="#products" className="rounded-xl bg-accent px-6 py-3 text-sm font-black text-on-accent">تسوق الآن</a><button onClick={goUsed} className="rounded-xl border border-border bg-surface px-6 py-3 text-sm font-black">الأجهزة المستعملة</button></div></div><div className="relative overflow-hidden border-t border-border md:h-full md:min-h-[360px] md:border-t-0"><img src="/hero.jpg" alt="APP TECH" className="block w-full object-contain md:absolute md:inset-0 md:h-full md:w-full md:object-cover"/><div className="absolute inset-0 hidden bg-gradient-to-l from-transparent via-transparent to-card md:block"/></div></div></section>
 
-   <section id="categories" className="py-6"><SectionTitle title="تسوق حسب الأقسام" sub="اختار القسم ووصل لمنتجاتك أسرع" action={<button onClick={()=>navigate('/categories')} className="text-xs font-black text-accent">عرض الكل</button>}/><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{cats.length?cats.map(c=><button type="button" key={c.id} onClick={()=>navigate(`/products?category=${c.id}`)} className="group rounded-2xl border border-border bg-card p-3 text-center transition hover:-translate-y-1 hover:border-accent-line active:scale-[.99]" aria-label={`عرض قسم ${c.name}`}>{c.image_path?<img src={publicMediaUrl('category-images',c.image_path)} className="mx-auto aspect-square w-full rounded-xl object-cover" alt={c.name}/>:<div className="mx-auto grid aspect-square w-full place-items-center rounded-xl bg-surface text-3xl">▦</div>}<b className="mt-2 block text-sm">{c.name}</b></button>):['موبايلات','شواحن','كابلات','سماعات','إكسسوارات','اسكرينات','جرابات','المزيد'].map(x=><div key={x} className="rounded-2xl border border-border bg-card p-5 text-center"><div className="text-2xl">▦</div><b className="mt-2 block text-sm">{x}</b></div>)}</div></section>
+   {['categories','featured','offers','recent','used']
+     .filter(sectionOn).sort((a,b)=>sectionOrder(a)-sectionOrder(b))
+     .map(id=><Fragment key={id}>{ {
+      categories: <section id="categories" className="py-6"><SectionTitle title="تسوق حسب الأقسام" sub="اختار القسم ووصل لمنتجاتك أسرع" action={<button onClick={()=>navigate('/categories')} className="text-xs font-black text-accent">عرض الكل</button>}/><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{cats.length?cats.map(c=><button type="button" key={c.id} onClick={()=>navigate(`/products?category=${c.id}`)} className="group rounded-2xl border border-border bg-card p-3 text-center transition hover:-translate-y-1 hover:border-accent-line active:scale-[.99]" aria-label={`عرض قسم ${c.name}`}>{c.image_path?<img src={publicMediaUrl('category-images',c.image_path)} className="mx-auto aspect-square w-full rounded-xl object-cover" alt={c.name}/>:<div className="mx-auto grid aspect-square w-full place-items-center rounded-xl bg-surface text-3xl">▦</div>}<b className="mt-2 block text-sm">{c.name}</b></button>):['موبايلات','شواحن','كابلات','سماعات','إكسسوارات','اسكرينات','جرابات','المزيد'].map(x=><div key={x} className="rounded-2xl border border-border bg-card p-5 text-center"><div className="text-2xl">▦</div><b className="mt-2 block text-sm">{x}</b></div>)}</div></section>,
+      featured: <section id="products" className="py-8"><SectionTitle title="المنتجات المميزة" sub="منتجات مختارة من APP TECH" action={<button type="button" onClick={()=>navigate('/products')} className="text-xs font-bold text-accent">عرض الكل</button>}/><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{(featured.length?featured:products.slice(0,8)).map(p=><ProductCard key={p.id} p={p}/>)}{!(featured.length||products.length)&&[1,2,3,4].map(x=><div key={x} className="aspect-[3/4] animate-pulse rounded-2xl bg-surface"/>)}</div></section>,
+      offers: <section id="offers" className="py-8"><SectionTitle title="العروض والخصومات" sub="وفّر أكثر على منتجات مختارة"/><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{offerProducts.length?offerProducts.map(p=><ProductCard key={p.id} p={p} cta="اغتنم العرض"/>):<div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted">لا توجد عروض سارية حاليًا.</div>}</div></section>,
+      recent: <section id="recent-products" className="py-8"><SectionTitle title="المضاف حديثًا" sub="أحدث الأصناف المتاحة بالمخزون"/><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{recentProducts.length?recentProducts.map(p=><ProductCard key={p.id} p={p} cta="عرض التفاصيل"/>):<div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted">لا توجد أصناف مضافة حديثًا ومتاحة بالمخزون.</div>}</div></section>,
+      used: <section className="py-8"><SectionTitle title="أجهزة مستعملة مختارة" sub="قسم الأجهزة المستعملة أصبح جزءًا من متجر APP TECH" action={<button onClick={goUsed} className="text-xs font-black text-accent">عرض كل الأجهزة</button>}/><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{used.slice(0,4).map(r=><button key={r.id||r.device_code} onClick={async()=>{await enterGuest();navigate(`/d/${encodeURIComponent(r.device_code||r.id)}`)}} className="overflow-hidden rounded-2xl border border-border bg-card text-start"><div className="aspect-square bg-surface">{r.images?.[0]?<img src={deviceImageUrl(r.images[0])} className="size-full object-cover"/>:<div className="grid size-full place-items-center text-4xl">📱</div>}</div><div className="p-3"><h3 className="truncate text-sm font-black">{r.model}</h3><p className="mt-1 text-xs text-muted">{r.storage}{r.color&&r.color!=='-'?` · ${r.color}`:''}</p><span className="mt-2 inline-block text-xs font-black text-accent">عرض التفاصيل ←</span></div></button>)}</div></section>,
+     }[id] }</Fragment>)}
 
-   <section id="products" className="py-8"><SectionTitle title="المنتجات المميزة" sub="منتجات متاحة حاليًا في iShop" action={<button type="button" onClick={()=>navigate('/products')} className="text-xs font-bold text-accent">عرض الكل</button>}/><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{products.length?products.slice(0,8).map(p=><button type="button" key={p.id} onClick={()=>navigate(`/product/${p.id}`)} className="overflow-hidden rounded-2xl border border-border bg-card text-start transition active:scale-[.99]" aria-label={`عرض ${p.name}`}><div className="aspect-square bg-surface">{p.images?.[0]?<img src={publicMediaUrl('product-images',p.images[0])} className="size-full object-cover" alt={p.name} onError={e=>{e.currentTarget.style.display='none';e.currentTarget.parentElement?.classList.add('product-image-failed')}}/>:<div className="grid size-full place-items-center text-5xl opacity-30">📦</div>}</div><div className="p-3"><p className="text-[10px] font-bold text-muted">{p.product_brands?.name||'iShop'}</p><h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-black">{p.name}</h3><span className="mt-3 block w-full rounded-xl border border-accent-line bg-accent-soft py-2 text-center text-xs font-black text-accent">عرض المنتج</span></div></button>):[1,2,3,4].map(x=><div key={x} className="aspect-[3/4] animate-pulse rounded-2xl bg-surface"/>)}</div></section>
-
-   <section id="recent-products" className="py-8"><SectionTitle title="المضاف حديثًا" sub="أحدث الأصناف التي تم شراؤها أو إضافتها إلى المخزون"/><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{recentProducts.length?recentProducts.map(p=><button key={p.id} onClick={()=>navigate(`/product/${p.id}`)} className="overflow-hidden rounded-2xl border border-border bg-card text-start"><div className="aspect-square bg-surface">{p.images?.[0]?<img src={publicMediaUrl('product-images',p.images[0])} className="size-full object-cover" alt={p.name}/>:<div className="grid size-full place-items-center text-5xl opacity-30">📦</div>}</div><div className="p-3"><p className="text-[10px] font-bold text-muted">{p.product_brands?.name||'iShop'}</p><h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-black">{p.name}</h3><span className="mt-3 block rounded-xl border border-accent-line bg-accent-soft py-2 text-center text-xs font-black text-accent">عرض التفاصيل</span></div></button>):<div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted">لا توجد أصناف مضافة حديثًا ومتاحة بالمخزون.</div>}</div></section>
-
-   <section className="py-8"><SectionTitle title="أجهزة مستعملة مختارة" sub="قسم الأجهزة المستعملة أصبح جزءًا من متجر iShop" action={<button onClick={goUsed} className="text-xs font-black text-accent">عرض كل الأجهزة</button>}/><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{used.slice(0,4).map(r=><button key={r.id||r.device_code} onClick={async()=>{await enterGuest();navigate(`/d/${encodeURIComponent(r.device_code||r.id)}`)}} className="overflow-hidden rounded-2xl border border-border bg-card text-start"><div className="aspect-square bg-surface">{r.images?.[0]?<img src={deviceImageUrl(r.images[0])} className="size-full object-cover"/>:<div className="grid size-full place-items-center text-4xl">📱</div>}</div><div className="p-3"><h3 className="truncate text-sm font-black">{r.model}</h3><p className="mt-1 text-xs text-muted">{r.storage}{r.color&&r.color!=='-'?` · ${r.color}`:''}</p><span className="mt-2 inline-block text-xs font-black text-accent">عرض التفاصيل ←</span></div></button>)}</div></section>
 
    <section className="grid gap-3 py-8 sm:grid-cols-2 lg:grid-cols-4">{[['🛡️','ضمان حقيقي','ضمان موثق على المنتجات المؤهلة'],['✓','منتجات موثوقة','بيانات واضحة قبل الشراء'],['🚚','خدمة سريعة','تجربة شراء أسهل وأسرع'],['🎧','دعم ما بعد البيع','فريق MTC Group معك']].map(([i,t,d])=><div key={t} className="rounded-2xl border border-border bg-card p-5"><span className="text-2xl">{i}</span><b className="mt-3 block">{t}</b><p className="mt-1 text-xs text-muted">{d}</p></div>)}</section>
 

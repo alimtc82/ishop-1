@@ -81,7 +81,7 @@ export default function ProductLookupAdmin({table,title,symbol=false}){
     const sample=symbol?['قطعة','PCS']:['Apple'];
     const ws=XLSX.utils.aoa_to_sheet([headers,sample]);ws['!cols']=headers.map(()=>({wch:28}));
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,title);
-    XLSX.writeFile(wb,`iShop_${table}_Template.xlsx`);
+    XLSX.writeFile(wb,`APPTECH_${table}_Template.xlsx`);
   };
   const importFile=async e=>{
     const file=e.target.files?.[0];if(!file)return;

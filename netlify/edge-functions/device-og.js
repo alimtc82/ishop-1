@@ -39,9 +39,9 @@ export default async (request, context) => {
 
   const img = Array.isArray(dev.images) && dev.images[0] ? String(dev.images[0]) : null;
   const name = [dev.model, dev.storage].filter(Boolean).join(' ') || 'جهاز';
-  const title = `${name} — iShop`;
+  const title = `${name} — APP TECH`;
   const desc =
-    `${[dev.model, dev.storage, dev.color].filter(Boolean).join(' · ')} — جهاز مستعمل بحالة ممتازة من iShop`;
+    `${[dev.model, dev.storage, dev.color].filter(Boolean).join(' · ')} — جهاز مستعمل بحالة ممتازة من APP TECH`;
   const pageUrl = `${ORIGIN}${url.pathname}`;
 
   let html = await res.text();

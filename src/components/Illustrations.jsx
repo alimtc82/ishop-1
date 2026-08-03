@@ -7,12 +7,12 @@ import Input from './ui/Input';
 
 // أنماط البادج حسب النوع — مشتركة مع الصفحة العامة
 export const TONE = {
-  bad:  { def: 'من خارج iShop', cls: 'border-danger/40 bg-danger/15 text-danger' },
-  good: { def: 'من iShop',      cls: 'border-[var(--mtc-success)]/45 bg-[var(--mtc-success)]/18 text-[var(--mtc-success)]' },
+  bad:  { def: 'من خارج APP TECH', cls: 'border-danger/40 bg-danger/15 text-danger' },
+  good: { def: 'من APP TECH',      cls: 'border-[var(--mtc-success)]/45 bg-[var(--mtc-success)]/18 text-[var(--mtc-success)]' },
   neutral: { def: '',           cls: 'border-accent-line bg-accent-soft text-accent' },
 };
 const TONE_ORDER = ['bad', 'good', 'neutral'];
-const TONE_NAME = { bad: '❌ مشكلة (خارج iShop)', good: '✅ سليمة (iShop)', neutral: '⭐ مخصص' };
+const TONE_NAME = { bad: '❌ مشكلة (خارج APP TECH)', good: '✅ سليمة (APP TECH)', neutral: '⭐ مخصص' };
 
 export default function Illustrations() {
   const { show } = useToast();
@@ -95,7 +95,7 @@ export default function Illustrations() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-black text-accent">الصور التوضيحية</h1>
-        <p className="mt-1 text-sm text-muted">صور المقارنة اللي بتظهر في صفحات «ليه iShop». كل صورة عليها بادج.</p>
+        <p className="mt-1 text-sm text-muted">صور المقارنة اللي بتظهر في صفحات «ليه APP TECH». كل صورة عليها بادج.</p>
       </div>
 
       {/* اختيار الصفحة */}

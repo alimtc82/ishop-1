@@ -91,7 +91,7 @@ export default function NewsTickerAdmin() {
           dir="rtl"
           value={cfg.text}
           onChange={(e) => set({ text: e.target.value })}
-          placeholder={'🎉 خصم 15% على الإكسسوارات — [اطلب الآن](https://ishop-1.vercel.app)\n📱 وصل آيفون 17 برو ماكس'}
+          placeholder={'🎉 خصم 15% على الإكسسوارات — [اطلب الآن](https://ishop.mtc-group.online)\n📱 وصل آيفون 17 برو ماكس'}
         />
 
         {/* تفعيل */}

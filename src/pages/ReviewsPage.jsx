@@ -152,7 +152,7 @@ export default function ReviewsPage() {
           <figure key={r.id} style={{ animationDelay: `${i * 0.04}s` }} className="rise rounded-3xl border border-border bg-card p-5">
             <div className="mb-3 flex items-center gap-3">
               {r.avatar_url ? <img src={r.avatar_url} alt="" referrerPolicy="no-referrer" className="size-11 rounded-full border border-border object-cover" /> : <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-lg">👤</span>}
-              <div className="min-w-0"><div className="truncate text-sm font-black text-text">{r.customer_name || 'عميل iShop'}</div><div className="text-[11px] font-bold text-muted">{r.branch || 'iShop'}</div></div>
+              <div className="min-w-0"><div className="truncate text-sm font-black text-text">{r.customer_name || 'عميل APP TECH'}</div><div className="text-[11px] font-bold text-muted">{r.branch || 'APP TECH'}</div></div>
               <div className="mr-auto flex text-accent" aria-label={`${r.rating || 5} من 5`}>{'★★★★★'.split('').map((s, j) => <span key={j} className={j < (r.rating || 5) ? '' : 'opacity-20'}>{s}</span>)}</div>
             </div>
             <blockquote className="text-[15px] leading-relaxed text-text">{r.body}</blockquote>

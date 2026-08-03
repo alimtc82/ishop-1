@@ -16,7 +16,7 @@ export function exportCSV(data) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `iShop_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.csv`;
+  a.download = `APPTECH_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 
