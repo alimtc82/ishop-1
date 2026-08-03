@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ThemeToggle } from '../components/ThemePanel';
 import Icon from '../components/ui/Icon';
 import SiteFooter from '../components/SiteFooter';
+import { indexOffers, pickOffer, applyOffer } from '../lib/offers';
 import NewsTicker from '../components/ui/NewsTicker';
 import { fetchDevices,deviceImageUrl } from '../lib/api';
 import { supabase } from '../lib/supabase';
