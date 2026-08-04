@@ -140,17 +140,17 @@ export const DEFAULT_PERMS = Object.fromEntries(PERMISSIONS.map((p) => [p.key, p
 
 /** شاشات ERP: كل شاشة تحتوي صلاحية الدخول وأزرارها/إجراءاتها. */
 const ERP_SCREENS = [
-  { key: 'entry', label: 'الدخول العام إلى ERP', modules: ['erp'], keys: ['can_erp'] },
+  { key: 'entry', label: 'الدخول العام إلى ERP', modules: [], keys: ['can_erp'] },
   { key: 'products', label: 'المنتجات ومجموعات الأسعار', modules: ['erp_products'], keys: ['can_erp_products'] },
   { key: 'sales', label: 'المبيعات', modules: ['erp_sales'], keys: ['can_erp_sales'] },
-  { key: 'pos', label: 'نقطة البيع والورديات', modules: ['erp'], keys: ['can_erp_pos', 'can_pos_shift_open', 'can_pos_shift_close', 'can_pos_shift_report', 'can_pos_shift_view_all'] },
+  { key: 'pos', label: 'نقطة البيع والورديات', modules: [], keys: ['can_erp_pos', 'can_pos_shift_open', 'can_pos_shift_close', 'can_pos_shift_report', 'can_pos_shift_view_all'] },
   { key: 'purchases', label: 'المشتريات', modules: ['erp_purchases'], keys: ['can_erp_purchases'] },
   { key: 'inventory', label: 'المخزون', modules: ['erp_inventory'], keys: ['can_erp_inventory'] },
   { key: 'customers', label: 'العملاء', modules: ['erp_customers'], keys: ['can_erp_customers'] },
   { key: 'suppliers', label: 'الموردون', modules: ['erp_suppliers'], keys: ['can_erp_suppliers'] },
   { key: 'finance', label: 'المالية والخزائن', modules: ['erp_finance'], keys: ['can_erp_finance'] },
   { key: 'reports', label: 'التقارير والرقابة', modules: ['erp_reports'], keys: ['can_erp_reports', 'can_erp_audit', 'can_erp_backup_export', 'can_erp_reset'] },
-  { key: 'documents', label: 'المستندات والإجراءات العامة', modules: ['erp'], keys: ['can_erp_post', 'can_erp_cancel', 'can_erp_print', 'can_erp_document_print', 'can_erp_all_branches'] },
+  { key: 'documents', label: 'المستندات والإجراءات العامة', modules: [], keys: ['can_erp_post', 'can_erp_cancel', 'can_erp_print', 'can_erp_document_print', 'can_erp_all_branches'] },
 ];
 
 function erpScreens() {
