@@ -349,7 +349,7 @@ export default function RolesAdmin() {
 
       <StatisticsCards stats={stats} loading={loading} />
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-1">
         <RolesList
           loading={loading}
           query={query}
@@ -364,7 +364,7 @@ export default function RolesAdmin() {
           onCreate={() => { setCreating(true); setLabel(''); setPerms({ ...DEFAULT_PERMS }); }}
         />
 
-        {/* ══ تفاصيل الدور — يمين، عريض ══ */}
+        {/* ══ تفاصيل الدور — بعرض الصفحة كاملًا على الكمبيوتر ══ */}
         <div className="min-w-0 space-y-4 lg:order-2">
           {creating ? (
             <>
