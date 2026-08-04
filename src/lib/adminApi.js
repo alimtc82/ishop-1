@@ -182,6 +182,30 @@ export async function deleteRole(key) {
   const { error } = await supabase.from('roles').delete().eq('key', key).eq('is_builtin', false);
   if (error) throw error;
 }
+
+// الصلاحيات المتدرجة (موديول ← شاشة ← زر) محفوظة في جدول مرن، حتى لا
+// يحتاج كل زر جديد إلى عمود جديد في جدول الأدوار.
+export async function fetchRolePermissionRows() {
+  const { data, error } = await supabase
+    .from('role_permissions')
+    .select('role_key,permission_key,allowed');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveRolePermissionChanges(roleKey, values) {
+  const rows = Object.entries(values).map(([permission_key, allowed]) => ({
+    role_key: roleKey,
+    permission_key,
+    allowed: allowed === true,
+    updated_at: new Date().toISOString(),
+  }));
+  if (!rows.length) return;
+  const { error } = await supabase
+    .from('role_permissions')
+    .upsert(rows, { onConflict: 'role_key,permission_key' });
+  if (error) throw error;
+}
 export async function fetchAllReviews() {
   const { data, error } = await supabase
     .from('reviews').select('*').order('created_at', { ascending: false }).limit(500);
