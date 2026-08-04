@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "mkdir -p public && cp app-tech-og.png public/app-tech-og.png && vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx --fix || true",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\"",
