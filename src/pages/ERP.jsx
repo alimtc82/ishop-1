@@ -38,6 +38,10 @@ import ERPResetAdmin from '../components/ERPResetAdmin';
 import BusinessQAAdmin from '../components/BusinessQAAdmin';
 import RuntimeQAAdmin from '../components/RuntimeQAAdmin';
 
+const SCREEN_PERMISSION = {
+  categories: 'erp.products.categories',
+};
+
 const MODULES = [
   { key:'dashboard', perm:'can_erp', icon:'📊', label:'لوحة ERP', items:[['overview','نظرة عامة'],['audit-log','سجل العمليات']] },
   { key:'sales', perm:'can_erp_sales', icon:'🧾', label:'المبيعات', items:[['sales-all','كل المبيعات'],['sales-add','إضافة بيع'],['pos','نقطة البيع'],['sales-returns','مرتجع المبيعات'],['offers','العروض والخصومات']] },
@@ -61,7 +65,16 @@ export default function ERP({ standaloneKey = null, onExit = null }){
   const navigate = useNavigate();
   const [open, setOpen] = useState('sales');
   const [active, setActive] = useState(standaloneKey || 'overview');
-  const visibleModules = useMemo(() => MODULES.filter(m => can(m.perm)).map(m => ({...m, items: m.items.filter(([k]) => k !== 'audit-log' || can('can_erp_audit')).filter(([k]) => k !== 'pos' || can('can_erp_pos')).filter(([k]) => k !== 'sale-price-groups' || can('can_erp_price_groups')).filter(([k]) => k !== 'system-backup' || can('can_erp_backup_export')).filter(([k]) => k !== 'erp-reset' || can('can_erp_reset'))})).filter(m => m.items.length), [can]);
+  const visibleModules = useMemo(() => MODULES.filter(m => can(m.perm)).map(m => ({
+    ...m,
+    items: m.items
+      .filter(([key]) => !SCREEN_PERMISSION[key] || can(SCREEN_PERMISSION[key]))
+      .filter(([k]) => k !== 'audit-log' || can('can_erp_audit'))
+      .filter(([k]) => k !== 'pos' || can('can_erp_pos'))
+      .filter(([k]) => k !== 'sale-price-groups' || can('can_erp_price_groups'))
+      .filter(([k]) => k !== 'system-backup' || can('can_erp_backup_export'))
+      .filter(([k]) => k !== 'erp-reset' || can('can_erp_reset')),
+  })).filter(m => m.items.length), [can]);
   const allowed = useMemo(() => new Set(visibleModules.flatMap(m=>m.items.map(([k])=>k))), [visibleModules]);
   useEffect(() => { if (standaloneKey) { setActive(standaloneKey); return; } if (!allowed.has(active)) setActive(visibleModules[0]?.items[0]?.[0] || 'overview'); }, [allowed, active, visibleModules, standaloneKey]);
   const activeLabel = useMemo(() => visibleModules.flatMap(m=>m.items).find(([k])=>k===active)?.[1] || 'نظرة عامة', [active, visibleModules]);

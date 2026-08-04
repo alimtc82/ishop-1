@@ -18,6 +18,8 @@
 //     مفيش قراءة من الشبكة ولا تسجيل وقت التشغيل. مجرد تطبيع لقائمة.
 // ══════════════════════════════════════════════════════════════
 
+import { ERP_DYNAMIC_PERMISSIONS } from '../../lib/erpPermissionRegistry';
+
 /** الموديولات — الترتيب هنا هو ترتيب العرض */
 const MODULES = [
   { key: 'devices', icon: '📱', label: 'الأجهزة' },
@@ -127,21 +129,34 @@ const PERMISSIONS = [
   { key: 'can_pos_shift_view_all', module: 'erp', default: false, label: 'عرض ورديات كل المستخدمين', hint: 'للإدارة — عرض ورديات جميع الموظفين' },
 ];
 
+// صلاحيات ERP المتدرجة: موديول ← شاشة ← إجراء. تُخزّن ديناميكيًا،
+// بينما المفاتيح القديمة أعلاه تبقى متوافقة مع الأدوار الحالية.
+const DISPLAY_PERMISSIONS = [
+  ...PERMISSIONS,
+  ...ERP_DYNAMIC_PERMISSIONS.map((permission) => ({
+    ...permission,
+    module: 'erp',
+    default: true,
+    hint: permission.parent ? 'تحتاج فتح المستوى الأعلى تلقائيًا.' : 'صلاحية شاشة مستقلة داخل ERP.',
+  })),
+];
+
 // ══ مشتقّات — متولّدة، ما تتكتبش بالإيد ══════════════════════════
 //  MODULES و PERMISSIONS فوق دول سطح الكتابة (تتعدّل بالإيد) بس مش
 //  مُصدَّرين — مفيش ملف محتاجهم دلوقتي. أول ما حد يحتاجهم، كلمة
 //  `export` واحدة تكفي.
 
 /** [key, label][] — بنفس شكل V11.6 عشان التوافق */
-export const PERMS = PERMISSIONS.map((p) => [p.key, p.label]);
+export const PERMS = DISPLAY_PERMISSIONS.map((p) => [p.key, p.label]);
 
 /** القيم الافتراضية لدور جديد */
-export const DEFAULT_PERMS = Object.fromEntries(PERMISSIONS.map((p) => [p.key, p.default]));
+export const DEFAULT_PERMS = Object.fromEntries(DISPLAY_PERMISSIONS.map((p) => [p.key, p.default]));
 
 /** شاشات ERP: كل شاشة تحتوي صلاحية الدخول وأزرارها/إجراءاتها. */
 const ERP_SCREENS = [
   { key: 'entry', label: 'الدخول العام إلى ERP', modules: [], keys: ['can_erp'] },
   { key: 'products', label: 'المنتجات ومجموعات الأسعار', modules: ['erp_products'], keys: ['can_erp_products'] },
+  { key: 'categories', label: 'الأقسام', modules: [], keys: ERP_DYNAMIC_PERMISSIONS.map((permission) => permission.key) },
   { key: 'sales', label: 'المبيعات', modules: ['erp_sales'], keys: ['can_erp_sales'] },
   { key: 'pos', label: 'نقطة البيع والورديات', modules: [], keys: ['can_erp_pos', 'can_pos_shift_open', 'can_pos_shift_close', 'can_pos_shift_report', 'can_pos_shift_view_all'] },
   { key: 'purchases', label: 'المشتريات', modules: ['erp_purchases'], keys: ['can_erp_purchases'] },
@@ -156,7 +171,7 @@ const ERP_SCREENS = [
 function erpScreens() {
   const used = new Set();
   const screens = ERP_SCREENS.map((screen) => {
-    const permissions = PERMISSIONS.filter((permission) =>
+    const permissions = DISPLAY_PERMISSIONS.filter((permission) =>
       screen.modules.includes(permission.module) || screen.keys.includes(permission.key)
     ).filter((permission) => {
       if (used.has(permission.key)) return false;
@@ -167,7 +182,7 @@ function erpScreens() {
     return { ...screen, permissions };
   }).filter((screen) => screen.permissions.length);
 
-  const remaining = PERMISSIONS.filter((permission) => permission.module.startsWith('erp') || permission.key.startsWith('can_pos_'))
+  const remaining = DISPLAY_PERMISSIONS.filter((permission) => permission.module.startsWith('erp') || permission.key.startsWith('can_pos_'))
     .filter((permission) => !used.has(permission.key))
     .map((permission) => ({ ...permission, screenLabel: 'إجراءات ERP أخرى' }));
 

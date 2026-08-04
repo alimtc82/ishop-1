@@ -110,6 +110,15 @@ export async function fetchMyUserRow(authId) {
         // is_admin على الدور = كل الصلاحيات؛ وإلا دلالة !== false
         merged[k] = role.is_admin ? true : role[k] !== false;
       }
+      const { data: dynamicRows, error: dynamicError } = await supabase
+        .from('role_permissions')
+        .select('permission_key,allowed')
+        .eq('role_key', data.role);
+      if (!dynamicError) {
+        merged.permission_overrides = Object.fromEntries(
+          (dynamicRows || []).map((item) => [item.permission_key, item.allowed === true])
+        );
+      }
       return merged;
     }
   } catch {

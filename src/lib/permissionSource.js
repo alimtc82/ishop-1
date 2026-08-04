@@ -13,6 +13,8 @@
 //     ثابت (`columnSource`) هو المركّب، والباقي مجرد باب مفتوح.
 // ══════════════════════════════════════════════════════════════
 
+import { ERP_PERMISSION_FALLBACK, ERP_PERMISSION_KEYS } from './erpPermissionRegistry';
+
 /**
  * أي مصدر لازم يوفّر الخمسة دول:
  *
@@ -79,8 +81,13 @@ export const columnSource = {
   getDisplay: (subject) => subject?.display_name ?? null,
   getOwnerId: (subject) => subject?.auth_id ?? null,
   getBranch:  (subject) => subject?.branch ?? null,
-  hasFlag: (subject, key) => subject?.[key] !== false,
-  keys: () => PERMISSION_KEYS,
+  hasFlag: (subject, key) => {
+    const overrides = subject?.permission_overrides || {};
+    if (Object.prototype.hasOwnProperty.call(overrides, key)) return overrides[key] === true;
+    const fallback = ERP_PERMISSION_FALLBACK[key];
+    return fallback ? subject?.[fallback] !== false : subject?.[key] !== false;
+  },
+  keys: () => [...PERMISSION_KEYS, ...ERP_PERMISSION_KEYS],
 };
 
 let active = columnSource;

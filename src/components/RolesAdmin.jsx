@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../context/ToastContext';
 import { fetchRoles, fetchUsers } from '../lib/api';
-import { createRole, updateRole, deleteRole } from '../lib/adminApi';
+import { createRole, updateRole, deleteRole, fetchRolePermissionRows, saveRolePermissionChanges } from '../lib/adminApi';
+import { ERP_PERMISSION_KEYS, ERP_PERMISSION_PARENT, rolePermissionValue } from '../lib/erpPermissionRegistry';
 import { formatDate } from '../utils/format';
 import Input from './ui/Input';
 
@@ -22,14 +23,14 @@ import SaveBar from './roles/SaveBar';
  */
 function permsOf(row) {
   const admin = row?.is_admin || row?.key === 'admin';
-  return Object.fromEntries(PERMS.map(([k]) => [k, admin ? true : row[k] !== false]));
+  return Object.fromEntries(PERMS.map(([k]) => [k, admin ? true : rolePermissionValue(row, k)]));
 }
 
 /** عدد الصلاحيات المفعّلة — بنفس الدلالة */
 function countActive(row) {
   if (!row) return 0;
   if (row.is_admin || row.key === 'admin') return PERMS.length;
-  return PERMS.reduce((n, [k]) => n + (row[k] !== false ? 1 : 0), 0);
+  return PERMS.reduce((n, [k]) => n + (rolePermissionValue(row, k) ? 1 : 0), 0);
 }
 
 /**
@@ -70,7 +71,12 @@ export default function RolesAdmin() {
 
   async function load() {
     setLoading(true);
-    try { setRoles(await fetchRoles()); }
+    try {
+      const [roleRows, permissionRows] = await Promise.all([fetchRoles(), fetchRolePermissionRows()]);
+      const byRole = {};
+      for (const row of permissionRows) (byRole[row.role_key] ||= {})[row.permission_key] = row.allowed === true;
+      setRoles(roleRows.map((role) => ({ ...role, permission_overrides: byRole[role.key] || {} })));
+    }
     catch (e) { show('❌ ' + (e.message || ''), 'error'); }
     finally { setLoading(false); }
   }
@@ -93,7 +99,13 @@ export default function RolesAdmin() {
     setBusy(true);
     try {
       const key = 'r' + Date.now().toString(36);
-      await createRole({ key, label: l, is_builtin: false, is_admin: false, ...perms, sort: 100 });
+      const staticPerms = Object.fromEntries(
+        Object.entries(perms).filter(([permissionKey]) => !ERP_PERMISSION_KEYS.includes(permissionKey))
+      );
+      await createRole({ key, label: l, is_builtin: false, is_admin: false, ...staticPerms, sort: 100 });
+      await saveRolePermissionChanges(key, Object.fromEntries(
+        ERP_PERMISSION_KEYS.map((permissionKey) => [permissionKey, perms[permissionKey] === true])
+      ));
       show('✅ اتضاف الدور');
       setLabel(''); setPerms({ ...DEFAULT_PERMS });
       setCreating(false);
@@ -147,16 +159,29 @@ export default function RolesAdmin() {
   const deletable = !!selected && !selected.is_builtin && !(selected.is_admin || selected.key === 'admin');
   const changed = useMemo(() => {
     if (!selected || !draft || !editable) return [];
-    return PERMS.map(([k]) => k).filter((k) => draft[k] !== (selected[k] !== false));
+    return PERMS.map(([k]) => k).filter((k) => draft[k] !== rolePermissionValue(selected, k));
   }, [selected, draft, editable]);
 
   async function saveChanges() {
     if (!selected || !changed.length) return;
     setBusy(true);
     try {
-      // نفس نداء الحفظ الأصلي بالظبط، مفتاح مفتاح
-      for (const k of changed) await updateRole(selected.key, { [k]: draft[k] });
-      setRoles((p) => p.map((x) => x.key === selected.key ? { ...x, ...draft } : x));
+      const staticChanges = changed.filter((key) => !ERP_PERMISSION_KEYS.includes(key));
+      const dynamicChanges = changed.filter((key) => ERP_PERMISSION_KEYS.includes(key));
+      for (const key of staticChanges) await updateRole(selected.key, { [key]: draft[key] });
+      if (dynamicChanges.length) {
+        await saveRolePermissionChanges(selected.key, Object.fromEntries(
+          dynamicChanges.map((key) => [key, draft[key] === true])
+        ));
+      }
+      setRoles((rows) => rows.map((role) => role.key === selected.key ? {
+        ...role,
+        ...Object.fromEntries(staticChanges.map((key) => [key, draft[key]])),
+        permission_overrides: {
+          ...(role.permission_overrides || {}),
+          ...Object.fromEntries(dynamicChanges.map((key) => [key, draft[key] === true])),
+        },
+      } : role));
       show('✅ اتحفظت الصلاحيات');
     } catch (e) { show('❌ ' + (e.message || ''), 'error'); }
     finally { setBusy(false); }
@@ -197,10 +222,30 @@ export default function RolesAdmin() {
   // ── قيم الصلاحيات المعروضة ──
   const values = creating ? perms : draft;
   const get = (k) => !!values?.[k];
-  const set = (k) =>
-    creating
-      ? setPerms((p) => ({ ...p, [k]: !p[k] }))
-      : setDraft((p) => ({ ...p, [k]: !p[k] }));
+  const set = (key) => {
+    const change = (current) => {
+      const next = { ...current, [key]: !current[key] };
+      if (!ERP_PERMISSION_KEYS.includes(key)) return next;
+
+      if (next[key]) {
+        // فتح زر يفتح الشاشة والمستوى الأب تلقائيًا.
+        for (let parent = ERP_PERMISSION_PARENT[key]; parent; parent = ERP_PERMISSION_PARENT[parent]) next[parent] = true;
+        // إضافة قسم تشمل رفع صورته، كما هو مطلوب في تدفق الشاشة.
+        if (key === 'erp.products.categories.create') next['erp.products.categories.image'] = true;
+      } else {
+        // إغلاق شاشة/إجراء رئيسي يغلق كل ما تحته، فلا تبقى أزرار يتيمة.
+        for (const child of ERP_PERMISSION_KEYS) {
+          let parent = ERP_PERMISSION_PARENT[child];
+          while (parent) {
+            if (parent === key) { next[child] = false; break; }
+            parent = ERP_PERMISSION_PARENT[parent];
+          }
+        }
+      }
+      return next;
+    };
+    creating ? setPerms(change) : setDraft(change);
+  };
 
   const shownModules = useMemo(() => {
     const q = permissionQuery.trim().toLowerCase();
