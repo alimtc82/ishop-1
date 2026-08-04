@@ -217,6 +217,34 @@ export default function RolesAdmin() {
     }).filter((module) => module.permissions.length);
   }, [permissionQuery]);
 
+  const permissionSuggestions = useMemo(() => {
+    const q = permissionQuery.trim().toLowerCase();
+    if (!q) return [];
+
+    return MODULE_TREE.flatMap((module) => module.permissions.map((permission) => ({
+      ...permission,
+      moduleKey: module.key,
+      moduleLabel: module.label,
+      moduleIcon: module.icon,
+    }))).filter((permission) =>
+      [permission.label, permission.hint, permission.moduleLabel]
+        .some((text) => text?.toLowerCase().includes(q))
+    ).slice(0, 8);
+  }, [permissionQuery]);
+
+  function selectPermission({ key, moduleKey }) {
+    setOpen((current) => ({ ...current, [moduleKey]: true }));
+    setPermissionQuery('');
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(`permission-${key}`);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target?.focus({ preventScroll: true });
+      });
+    });
+  }
+
   const activeCount = countActive(values);
   const allOpen = shownModules.length > 0 && shownModules.every((m) => open[m.key]);
   const toggleAll = () => setOpen((current) => ({
@@ -258,6 +286,8 @@ export default function RolesAdmin() {
       query={permissionQuery}
       onQueryChange={setPermissionQuery}
       moduleCount={shownModules.length}
+      suggestions={permissionSuggestions}
+      onSuggestionSelect={selectPermission}
       readOnly={!creating && !editable}
     />
   );
