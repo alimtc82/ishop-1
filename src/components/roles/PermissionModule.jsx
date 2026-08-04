@@ -135,7 +135,7 @@ export default function PermissionModule({
   );
 
   return (
-    <div className={`overflow-hidden rounded-2xl border border-border bg-card ${module.key === 'erp' ? 'xl:col-span-2' : ''}`}>
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card">
       <button
         type="button"
         onClick={onToggleOpen}
