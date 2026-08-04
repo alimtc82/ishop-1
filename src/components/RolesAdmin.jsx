@@ -226,8 +226,9 @@ export default function RolesAdmin() {
       moduleKey: module.key,
       moduleLabel: module.label,
       moduleIcon: module.icon,
+      screenLabel: permission.screenLabel,
     }))).filter((permission) =>
-      [permission.label, permission.hint, permission.moduleLabel]
+      [permission.label, permission.hint, permission.moduleLabel, permission.screenLabel]
         .some((text) => text?.toLowerCase().includes(q))
     ).slice(0, 8);
   }, [permissionQuery]);
