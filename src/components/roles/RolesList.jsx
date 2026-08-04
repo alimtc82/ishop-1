@@ -68,7 +68,7 @@ export default function RolesList({
   const noResults = !!query.trim() && shown.length === 0;
 
   return (
-    <aside className="space-y-3 lg:order-2">
+    <aside className="min-w-0 space-y-3 lg:order-1">
       {/* البحث */}
       <div className="relative">
         <span className="pointer-events-none absolute inset-y-0 start-0 flex w-10 items-center justify-center text-muted">
