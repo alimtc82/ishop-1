@@ -1,24 +1,38 @@
 const SOCIAL_CRAWLERS = /facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|googlebot|bingbot|pinterest|skypeuripreview|instagram/i;
 
-export function middleware(request) {
+export async function middleware(request) {
   const userAgent = request.headers.get('user-agent') || '';
   if (!SOCIAL_CRAWLERS.test(userAgent)) return;
 
   const url = new URL(request.url);
+  const match = url.pathname.match(/^\/(?:product|d)\/([^/]+)\/?$/);
+  if (!match) return;
 
-  const productMatch = url.pathname.match(/^\/product\/([^/]+)\/?$/);
-  if (productMatch) {
-    const previewUrl = new URL('/api/product-preview', url.origin);
-    previewUrl.searchParams.set('id', productMatch[1]);
-    previewUrl.searchParams.set('path', url.pathname);
-    return Response.redirect(previewUrl, 307);
-  }
+  const previewUrl = new URL('/api/product-preview', url.origin);
+  previewUrl.searchParams.set('id', match[1]);
+  previewUrl.searchParams.set('path', url.pathname);
 
-  const deviceMatch = url.pathname.match(/^\/d\/([^/]+)\/?$/);
-  if (deviceMatch) {
-    const previewUrl = new URL('/api/device-preview', url.origin);
-    previewUrl.searchParams.set('code', deviceMatch[1]);
-    return Response.redirect(previewUrl, 307);
+  try {
+    const preview = await fetch(previewUrl, {
+      headers: {
+        'user-agent': userAgent,
+        'x-forwarded-host': url.host,
+        'x-forwarded-proto': url.protocol.replace(':', ''),
+      },
+    });
+    if (!preview.ok) return;
+
+    const html = await preview.text();
+    return new Response(html, {
+      status: 200,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'public, s-maxage=60, stale-while-revalidate=300',
+        'x-robots-tag': 'noindex',
+      },
+    });
+  } catch (_) {
+    return;
   }
 }
 
