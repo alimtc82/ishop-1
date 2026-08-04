@@ -2,6 +2,7 @@ import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'reac
 import { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { usePermissions } from './context/PermissionContext';
+import { useLiveSync } from './context/LiveSyncContext';
 import PermissionGuard from './components/PermissionGuard';
 import { fetchPendingReviewsCount } from './lib/api';
 import { ThemeToggle } from './components/ThemePanel';
@@ -67,6 +68,7 @@ export default function StaffShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin, can, display, avatarUrl } = usePermissions();
+  const { revision } = useLiveSync();
   const admin = isAdmin();
 
   const [pending, setPending] = useState(0);
@@ -89,26 +91,26 @@ export default function StaffShell() {
   const erpSectionMatch = location.pathname.match(/^\/erp\/([^/]+)$/);
   if (erpSectionMatch) {
     return can('can_erp')
-      ? <ERP standaloneKey={decodeURIComponent(erpSectionMatch[1])} onExit={() => navigate('/erp')} />
+      ? <ERP key={`erp-${revision}`} standaloneKey={decodeURIComponent(erpSectionMatch[1])} onExit={() => navigate('/erp')} />
       : <Navigate to="/devices" replace />;
   }
 
   if (location.pathname === '/reports') {
     return can('can_erp') && can('can_erp_reports')
-      ? <ERPReportsHub onExit={() => navigate('/erp')} />
+      ? <ERPReportsHub key={`reports-${revision}`} onExit={() => navigate('/erp')} />
       : <Navigate to="/erp" replace />;
   }
 
   // /pos is a dedicated application route: no staff header, nav, ERP shell, or footer.
   if (location.pathname === '/purchases') {
     return can('can_erp') && can('can_erp_purchases') && can('can_erp_purchase_create')
-      ? <PurchasePointOfSale onExit={() => navigate('/erp')} />
+      ? <PurchasePointOfSale key={`purchases-${revision}`} onExit={() => navigate('/erp')} />
       : <Navigate to="/erp" replace />;
   }
 
   if (location.pathname === '/pos') {
     if (!can('can_erp') || !can('can_erp_pos')) return <Navigate to="/erp" replace />;
-    return <PosWithShift onExit={() => navigate('/erp')} />;
+    return <PosWithShift key={`pos-${revision}`} onExit={() => navigate('/erp')} />;
   }
 
   return (
@@ -133,7 +135,7 @@ export default function StaffShell() {
       </header>
 
       <main className="relative z-1 mx-auto max-w-5xl px-4">
-        <Routes>
+        <Routes key={`live-${revision}`}>
           <Route path="/" element={<Navigate to="/devices" replace />} />
           <Route path="/devices" element={<Devices />} />
           <Route path="/d/:code" element={<DevicePage />} />

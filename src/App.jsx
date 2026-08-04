@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PermissionProvider } from './context/PermissionContext';
+import { LiveSyncProvider } from './context/LiveSyncContext';
 import { PricingProvider } from './context/PricingContext';
 import { isRecoveryLink, exchangeRecoveryToken } from './lib/recovery';
 import Splash from './components/Splash';
@@ -202,11 +203,13 @@ export default function App() {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
-            <PermissionProvider>
-              <PricingProvider>
-                <AppShell />
-              </PricingProvider>
-            </PermissionProvider>
+            <LiveSyncProvider>
+              <PermissionProvider>
+                <PricingProvider>
+                  <AppShell />
+                </PricingProvider>
+              </PermissionProvider>
+            </LiveSyncProvider>
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
