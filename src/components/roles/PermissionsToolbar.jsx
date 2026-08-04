@@ -98,6 +98,7 @@ export default function PermissionsToolbar({
                   </span>
                   <span className="mt-0.5 block text-[11px] leading-snug text-muted">
                     {permission.moduleIcon} <MatchedText text={permission.moduleLabel} query={query} />
+                    {permission.screenLabel && <> ← <MatchedText text={permission.screenLabel} query={query} /></>}
                     {permission.hint && <> · <MatchedText text={permission.hint} query={query} /></>}
                   </span>
                 </button>
