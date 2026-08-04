@@ -15,9 +15,11 @@ import Toggle from '../ui/Toggle';
  * @param {Function} onChange
  * @param {boolean}  readOnly
  */
-export default function PermissionItem({ label, hint, value = false, onChange, readOnly = false }) {
+export default function PermissionItem({ id, label, hint, value = false, onChange, readOnly = false }) {
   return (
     <div
+      id={id}
+      tabIndex={-1}
       className={`flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 transition
                   ${value ? 'border-accent-line bg-accent-soft' : 'border-border bg-surface/40'}`}
     >
