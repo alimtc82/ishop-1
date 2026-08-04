@@ -9,7 +9,14 @@ export default function ProductLookupAdmin({table,title,symbol=false}){
   const {can}=usePermissions();
   const [rows,setRows]=useState([]),[name,setName]=useState(''),[sym,setSym]=useState(''),[image,setImage]=useState(''),[editId,setEditId]=useState(null),[uploading,setUploading]=useState(false),[saving,setSaving]=useState(false),[deleting,setDeleting]=useState(null),[importing,setImporting]=useState(false),[msg,setMsg]=useState(''),[isError,setIsError]=useState(false);
   const category=table==='product_categories';
-  const canCreate=can('can_erp_product_create'),canEdit=can('can_erp_product_edit');
+  // الأقسام لها طبقة مستقلة: شاشة ← إجراء ← صورة. باقي القوائم تحافظ
+  // على مفاتيحها الحالية إلى أن تُنقل لنفس الطبقة.
+  const canCreate = category ? can('erp.products.categories.create') : can('can_erp_product_create');
+  const canEdit = category ? can('erp.products.categories.edit') : can('can_erp_product_edit');
+  const canDelete = category ? can('erp.products.categories.delete') : canEdit;
+  const canImport = category ? can('erp.products.categories.import') : canCreate;
+  const canExport = category ? can('erp.products.categories.export') : true;
+  const canImage = category ? can('erp.products.categories.image') : true;
 
   const load=async()=>{
     const {data,error}=await supabase.from(table).select('*').order('name');
@@ -51,7 +58,7 @@ export default function ProductLookupAdmin({table,title,symbol=false}){
   };
 
   const remove=async r=>{
-    if(!canEdit){setIsError(true);setMsg(`ليس لديك صلاحية حذف ${title}.`);return;}
+    if(!canDelete){setIsError(true);setMsg(`ليس لديك صلاحية حذف ${title}.`);return;}
     if(!confirm(`هل تريد حذف ${title} "${r.name}"؟\nلن يتم الحذف إذا كان مرتبطًا بمنتجات أو بيانات أخرى تحميها قاعدة البيانات.`))return;
     setDeleting(r.id);setMsg('');setIsError(false);
     try{
@@ -85,7 +92,7 @@ export default function ProductLookupAdmin({table,title,symbol=false}){
   };
   const importFile=async e=>{
     const file=e.target.files?.[0];if(!file)return;
-    if(!canCreate){setIsError(true);setMsg(`ليس لديك صلاحية إضافة ${title}.`);e.target.value='';return;}
+    if(!canImport){setIsError(true);setMsg(`ليس لديك صلاحية استيراد ${title}.`);e.target.value='';return;}
     setImporting(true);setMsg('');setIsError(false);
     try{
       const wb=XLSX.read(await file.arrayBuffer());
@@ -110,15 +117,15 @@ export default function ProductLookupAdmin({table,title,symbol=false}){
 
   return <div className="max-w-3xl">
     <div className="mb-4 flex flex-wrap gap-2">
-      <button type="button" onClick={downloadTemplate} className="rounded-xl border border-accent-line px-3 py-2 text-xs font-black text-accent">تحميل قالب Excel</button>
-      <label className={`rounded-xl bg-accent px-3 py-2 text-xs font-black text-black ${importing||!canCreate?'cursor-not-allowed opacity-50':'cursor-pointer'}`}>{importing?'جارٍ الاستيراد…':'استيراد Excel'}<input hidden disabled={importing||!canCreate} type="file" accept=".xlsx,.xls,.csv" onChange={importFile}/></label>
+      <button type="button" disabled={!canExport} onClick={downloadTemplate} className="rounded-xl border border-accent-line px-3 py-2 text-xs font-black text-accent">تحميل قالب Excel</button>
+      <label className={`rounded-xl bg-accent px-3 py-2 text-xs font-black text-black ${importing||!canImport?'cursor-not-allowed opacity-50':'cursor-pointer'}`}>{importing?'جارٍ الاستيراد…':'استيراد Excel'}<input hidden disabled={importing||!canImport} type="file" accept=".xlsx,.xls,.csv" onChange={importFile}/></label>
     </div>
 
     <form onSubmit={save} className="mb-4 rounded-2xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-2"><b>{editId?`تعديل ${title}`:`إضافة ${title}`}</b>{editId&&<button type="button" onClick={cancelEdit} className="text-xs font-bold text-muted">إلغاء التعديل</button>}</div>
       <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
         <div className="flex gap-2"><input className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-text" placeholder={`اسم ${title}`} value={name} onChange={e=>setName(e.target.value)}/>{symbol&&<input className="w-28 rounded-xl border border-border bg-surface px-3 py-2 text-text" placeholder="الرمز" value={sym} onChange={e=>setSym(e.target.value)}/>}</div>
-        {category&&<div className="flex items-center gap-2">{image&&<img src={publicMediaUrl('category-images',image)} className="size-12 rounded-xl border border-border object-cover" alt="معاينة"/>}<label className={`flex-1 rounded-xl border border-dashed border-accent-line px-4 py-2 text-center text-sm font-bold text-accent ${uploading||!(editId?canEdit:canCreate)?'cursor-not-allowed opacity-50':'cursor-pointer'}`}>{uploading?'جارٍ رفع الصورة…':image?'تغيير الصورة':'إضافة صورة'}<input hidden disabled={uploading||saving||!(editId?canEdit:canCreate)} type="file" accept="image/*" onChange={pick}/></label>{image&&<button type="button" onClick={()=>setImage('')} className="rounded-xl border border-red-500/30 px-3 py-2 text-xs font-bold text-red-400">إزالة</button>}</div>}
+        {category&&<div className="flex items-center gap-2">{image&&<img src={publicMediaUrl('category-images',image)} className="size-12 rounded-xl border border-border object-cover" alt="معاينة"/>}<label className={`flex-1 rounded-xl border border-dashed border-accent-line px-4 py-2 text-center text-sm font-bold text-accent ${uploading||!canImage||!(editId?canEdit:canCreate)?'cursor-not-allowed opacity-50':'cursor-pointer'}`}>{uploading?'جارٍ رفع الصورة…':image?'تغيير الصورة':'إضافة صورة'}<input hidden disabled={uploading||saving||!canImage||!(editId?canEdit:canCreate)} type="file" accept="image/*" onChange={pick}/></label>{image&&<button type="button" onClick={()=>setImage('')} className="rounded-xl border border-red-500/30 px-3 py-2 text-xs font-bold text-red-400">إزالة</button>}</div>}
         <Button type="submit" loading={saving} disabled={uploading||!(editId?canEdit:canCreate)}>{saving?'جارٍ الحفظ…':editId?'حفظ التعديل':'إضافة'}</Button>
       </div>
     </form>
