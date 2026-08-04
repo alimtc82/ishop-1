@@ -302,7 +302,7 @@ export default function RolesAdmin() {
 
   const modulesPanel = (
     shownModules.length ? (
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="grid min-w-0 gap-3 xl:grid-cols-1">
         {shownModules.map((m) => (
           <PermissionModule
             key={m.key}
@@ -349,7 +349,7 @@ export default function RolesAdmin() {
 
       <StatisticsCards stats={stats} loading={loading} />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_290px]">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <RolesList
           loading={loading}
           query={query}
@@ -365,7 +365,7 @@ export default function RolesAdmin() {
         />
 
         {/* ══ تفاصيل الدور — يمين، عريض ══ */}
-        <div className="space-y-4 lg:order-1">
+        <div className="min-w-0 space-y-4 lg:order-2">
           {creating ? (
             <>
               <div className="rounded-3xl border border-accent-line bg-card p-4">
