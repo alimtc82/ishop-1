@@ -56,6 +56,7 @@ export default function PermissionModule({
               {list.map((p) => (
                 <PermissionItem
                   key={p.key}
+                  id={`permission-${p.key}`}
                   label={p.label}
                   hint={p.hint}
                   value={get(p.key)}

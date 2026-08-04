@@ -62,6 +62,7 @@ export default function RolesAdmin() {
 
   // ── حالة واجهة بحتة ──
   const [query, setQuery] = useState('');
+  const [permissionQuery, setPermissionQuery] = useState('');
   const [selectedKey, setSelectedKey] = useState(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -201,26 +202,79 @@ export default function RolesAdmin() {
       ? setPerms((p) => ({ ...p, [k]: !p[k] }))
       : setDraft((p) => ({ ...p, [k]: !p[k] }));
 
+  const shownModules = useMemo(() => {
+    const q = permissionQuery.trim().toLowerCase();
+    if (!q) return MODULE_TREE;
+
+    return MODULE_TREE.map((module) => {
+      const moduleMatches = module.label.toLowerCase().includes(q);
+      const permissions = moduleMatches
+        ? module.permissions
+        : module.permissions.filter((permission) =>
+            [permission.label, permission.hint].some((text) => text?.toLowerCase().includes(q))
+          );
+      return { ...module, permissions };
+    }).filter((module) => module.permissions.length);
+  }, [permissionQuery]);
+
+  const permissionSuggestions = useMemo(() => {
+    const q = permissionQuery.trim().toLowerCase();
+    if (!q) return [];
+
+    return MODULE_TREE.flatMap((module) => module.permissions.map((permission) => ({
+      ...permission,
+      moduleKey: module.key,
+      moduleLabel: module.label,
+      moduleIcon: module.icon,
+    }))).filter((permission) =>
+      [permission.label, permission.hint, permission.moduleLabel]
+        .some((text) => text?.toLowerCase().includes(q))
+    ).slice(0, 8);
+  }, [permissionQuery]);
+
+  function selectPermission({ key, moduleKey }) {
+    setOpen((current) => ({ ...current, [moduleKey]: true }));
+    setPermissionQuery('');
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(`permission-${key}`);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target?.focus({ preventScroll: true });
+      });
+    });
+  }
+
   const activeCount = countActive(values);
-  const allOpen = MODULE_TREE.every((m) => open[m.key]);
-  const toggleAll = () => setOpen(Object.fromEntries(MODULE_TREE.map((m) => [m.key, !allOpen])));
+  const allOpen = shownModules.length > 0 && shownModules.every((m) => open[m.key]);
+  const toggleAll = () => setOpen((current) => ({
+    ...current,
+    ...Object.fromEntries(shownModules.map((m) => [m.key, !allOpen])),
+  }));
 
   const dirty = creating ? !!label.trim() : changed.length > 0;
 
   const modulesPanel = (
-    <div className="space-y-2">
-      {MODULE_TREE.map((m) => (
-        <PermissionModule
-          key={m.key}
-          module={m}
-          isOpen={!!open[m.key]}
-          onToggleOpen={() => setOpen((p) => ({ ...p, [m.key]: !p[m.key] }))}
-          get={get}
-          set={set}
-          readOnly={!creating && !editable}
-        />
-      ))}
-    </div>
+    shownModules.length ? (
+      <div className="grid gap-3 xl:grid-cols-2">
+        {shownModules.map((m) => (
+          <PermissionModule
+            key={m.key}
+            module={m}
+            isOpen={!!open[m.key]}
+            onToggleOpen={() => setOpen((p) => ({ ...p, [m.key]: !p[m.key] }))}
+            get={get}
+            set={set}
+            readOnly={!creating && !editable}
+          />
+        ))}
+      </div>
+    ) : (
+      <div className="rounded-2xl border border-dashed border-border bg-card/40 px-4 py-8 text-center">
+        <p className="text-sm font-black text-text">لا توجد صلاحيات مطابقة</p>
+        <p className="mt-1 text-xs text-muted">جرّب كلمة أخرى أو امسح البحث.</p>
+      </div>
+    )
   );
 
   const toolbar = (
@@ -229,6 +283,11 @@ export default function RolesAdmin() {
       total={PERMS.length}
       allOpen={allOpen}
       onToggleAll={toggleAll}
+      query={permissionQuery}
+      onQueryChange={setPermissionQuery}
+      moduleCount={shownModules.length}
+      suggestions={permissionSuggestions}
+      onSuggestionSelect={selectPermission}
       readOnly={!creating && !editable}
     />
   );
