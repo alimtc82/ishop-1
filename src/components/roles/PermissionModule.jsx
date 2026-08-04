@@ -1,19 +1,27 @@
 import Icon from '../ui/Icon';
 import PermissionItem from './PermissionItem';
 
+function PermissionList({ permissions, get, set, readOnly }) {
+  return (
+    <div className="space-y-2">
+      {permissions.map((permission) => (
+        <PermissionItem
+          key={permission.key}
+          id={`permission-${permission.key}`}
+          label={permission.label}
+          hint={permission.hint}
+          value={get(permission.key)}
+          readOnly={readOnly}
+          onChange={() => set(permission.key)}
+        />
+      ))}
+    </div>
+  );
+}
+
 /**
- * موديول واحد: ترويسة قابلة للفتح/القفل + صفوف الصلاحيات جوّاها.
- *
- * بيرسم من `module.permissions` مباشرة — يعني إضافة صلاحية في ملف
- * الإعدادات بتظهر هنا من غير ما الملف ده يتفتح.
- *
- * @param {{key,icon,label,permissions:{key,label,hint}[]}} module
- * @param {boolean}  isOpen
- * @param {Function} onToggleOpen
- * @param {Function} get   (permKey) => boolean
- * @param {Function} set   (permKey) => void
- * @param {boolean}  readOnly   وضع العرض فقط (الأدوار الأساسية)
- * @param {string}   emptyText
+ * موديول صلاحيات. في ERP تظهر الشاشات أولًا، ثم إجراءات كل شاشة
+ * كخانات اختيار مستقلة.
  */
 export default function PermissionModule({
   module,
@@ -25,10 +33,11 @@ export default function PermissionModule({
   emptyText = 'الموديول ده لسه مالوش صلاحيات في النظام',
 }) {
   const list = module.permissions ?? [];
-  const on = list.filter((p) => get(p.key)).length;
+  const on = list.filter((permission) => get(permission.key)).length;
+  const screens = module.screens ?? [];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+    <div className={`overflow-hidden rounded-2xl border border-border bg-card ${module.key === 'erp' ? 'xl:col-span-2' : ''}`}>
       <button
         type="button"
         onClick={onToggleOpen}
@@ -51,20 +60,28 @@ export default function PermissionModule({
 
       {isOpen && (
         <div className="border-t border-border p-3">
-          {list.length ? (
-            <div className="space-y-2">
-              {list.map((p) => (
-                <PermissionItem
-                  key={p.key}
-                  id={`permission-${p.key}`}
-                  label={p.label}
-                  hint={p.hint}
-                  value={get(p.key)}
-                  readOnly={readOnly}
-                  onChange={() => set(p.key)}
-                />
-              ))}
+          {screens.length ? (
+            <div className="space-y-4">
+              {screens.map((screen) => {
+                const enabled = screen.permissions.filter((permission) => get(permission.key)).length;
+                return (
+                  <section key={screen.key} className="rounded-2xl border border-border bg-surface/30 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
+                      <div>
+                        <h3 className="text-sm font-black text-text">{screen.label}</h3>
+                        <p className="text-[11px] font-bold text-muted">الشاشة وأزرارها</p>
+                      </div>
+                      <span className="num rounded-full border border-border bg-card px-2 py-1 text-[10px] font-black text-muted">
+                        {enabled}/{screen.permissions.length}
+                      </span>
+                    </div>
+                    <PermissionList permissions={screen.permissions} get={get} set={set} readOnly={readOnly} />
+                  </section>
+                );
+              })}
             </div>
+          ) : list.length ? (
+            <PermissionList permissions={list} get={get} set={set} readOnly={readOnly} />
           ) : (
             <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-[11px] font-bold text-muted">
               {emptyText}

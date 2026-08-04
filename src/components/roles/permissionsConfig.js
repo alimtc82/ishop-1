@@ -26,15 +26,7 @@ const MODULES = [
   { key: 'customers', icon: '👥', label: 'العملاء' },
   { key: 'reports', icon: '📊', label: 'التقارير' },
   { key: 'settings', icon: '⚙️', label: 'الإعدادات' },
-  { key: 'erp', icon: '🏢', label: 'ERP — عام' },
-  { key: 'erp_products', icon: '🏷️', label: 'ERP — المنتجات' },
-  { key: 'erp_sales', icon: '🧾', label: 'ERP — المبيعات' },
-  { key: 'erp_purchases', icon: '🛒', label: 'ERP — المشتريات' },
-  { key: 'erp_inventory', icon: '📦', label: 'ERP — المخزون' },
-  { key: 'erp_customers', icon: '👥', label: 'ERP — العملاء' },
-  { key: 'erp_suppliers', icon: '🚚', label: 'ERP — الموردون' },
-  { key: 'erp_finance', icon: '💰', label: 'ERP — المالية' },
-  { key: 'erp_reports', icon: '📈', label: 'ERP — التقارير والرقابة' },
+  { key: 'erp', icon: '🏢', label: 'صلاحيات ERP' },
 ];
 
 /** الصلاحيات — كل واحدة بتقول هي في أنهي موديول */
@@ -146,9 +138,54 @@ export const PERMS = PERMISSIONS.map((p) => [p.key, p.label]);
 /** القيم الافتراضية لدور جديد */
 export const DEFAULT_PERMS = Object.fromEntries(PERMISSIONS.map((p) => [p.key, p.default]));
 
+/** شاشات ERP: كل شاشة تحتوي صلاحية الدخول وأزرارها/إجراءاتها. */
+const ERP_SCREENS = [
+  { key: 'entry', label: 'الدخول العام إلى ERP', modules: [], keys: ['can_erp'] },
+  { key: 'products', label: 'المنتجات ومجموعات الأسعار', modules: ['erp_products'], keys: ['can_erp_products'] },
+  { key: 'sales', label: 'المبيعات', modules: ['erp_sales'], keys: ['can_erp_sales'] },
+  { key: 'pos', label: 'نقطة البيع والورديات', modules: [], keys: ['can_erp_pos', 'can_pos_shift_open', 'can_pos_shift_close', 'can_pos_shift_report', 'can_pos_shift_view_all'] },
+  { key: 'purchases', label: 'المشتريات', modules: ['erp_purchases'], keys: ['can_erp_purchases'] },
+  { key: 'inventory', label: 'المخزون', modules: ['erp_inventory'], keys: ['can_erp_inventory'] },
+  { key: 'customers', label: 'العملاء', modules: ['erp_customers'], keys: ['can_erp_customers'] },
+  { key: 'suppliers', label: 'الموردون', modules: ['erp_suppliers'], keys: ['can_erp_suppliers'] },
+  { key: 'finance', label: 'المالية والخزائن', modules: ['erp_finance'], keys: ['can_erp_finance'] },
+  { key: 'reports', label: 'التقارير والرقابة', modules: ['erp_reports'], keys: ['can_erp_reports', 'can_erp_audit', 'can_erp_backup_export', 'can_erp_reset'] },
+  { key: 'documents', label: 'المستندات والإجراءات العامة', modules: [], keys: ['can_erp_post', 'can_erp_cancel', 'can_erp_print', 'can_erp_document_print', 'can_erp_all_branches'] },
+];
+
+function erpScreens() {
+  const used = new Set();
+  const screens = ERP_SCREENS.map((screen) => {
+    const permissions = PERMISSIONS.filter((permission) =>
+      screen.modules.includes(permission.module) || screen.keys.includes(permission.key)
+    ).filter((permission) => {
+      if (used.has(permission.key)) return false;
+      used.add(permission.key);
+      return true;
+    }).map((permission) => ({ ...permission, screenLabel: screen.label }));
+
+    return { ...screen, permissions };
+  }).filter((screen) => screen.permissions.length);
+
+  const remaining = PERMISSIONS.filter((permission) => permission.module.startsWith('erp') || permission.key.startsWith('can_pos_'))
+    .filter((permission) => !used.has(permission.key))
+    .map((permission) => ({ ...permission, screenLabel: 'إجراءات ERP أخرى' }));
+
+  if (remaining.length) screens.push({ key: 'other', label: 'إجراءات ERP أخرى', permissions: remaining });
+  return screens;
+}
+
 /** الموديولات + صلاحيات كل واحد جوّاها. ده اللي الواجهة بترسم منه. */
 export const MODULE_TREE = MODULES.map((m) => {
-  const permissions = PERMISSIONS.filter((p) => p.module === m.key);
+  if (m.key === 'erp') {
+    const screens = erpScreens();
+    const permissions = screens.flatMap((screen) => screen.permissions);
+    return { ...m, screens, permissions, keys: permissions.map((p) => p.key) };
+  }
+
+  const permissions = PERMISSIONS
+    .filter((p) => p.module === m.key)
+    .map((permission) => ({ ...permission, screenLabel: m.label }));
   return { ...m, permissions, keys: permissions.map((p) => p.key) };
 });
 
