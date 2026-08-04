@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../context/ToastContext';
 import { fetchRoles, fetchUsers } from '../lib/api';
 import { createRole, updateRole, deleteRole, fetchRolePermissionRows, saveRolePermissionChanges } from '../lib/adminApi';
-import { ERP_PERMISSION_KEYS, rolePermissionValue } from '../lib/erpPermissionRegistry';
+import { ERP_PERMISSION_KEYS, ERP_PERMISSION_PARENT, rolePermissionValue } from '../lib/erpPermissionRegistry';
 import { formatDate } from '../utils/format';
 import Input from './ui/Input';
 
@@ -222,10 +222,30 @@ export default function RolesAdmin() {
   // ── قيم الصلاحيات المعروضة ──
   const values = creating ? perms : draft;
   const get = (k) => !!values?.[k];
-  const set = (k) =>
-    creating
-      ? setPerms((p) => ({ ...p, [k]: !p[k] }))
-      : setDraft((p) => ({ ...p, [k]: !p[k] }));
+  const set = (key) => {
+    const change = (current) => {
+      const next = { ...current, [key]: !current[key] };
+      if (!ERP_PERMISSION_KEYS.includes(key)) return next;
+
+      if (next[key]) {
+        // فتح زر يفتح الشاشة والمستوى الأب تلقائيًا.
+        for (let parent = ERP_PERMISSION_PARENT[key]; parent; parent = ERP_PERMISSION_PARENT[parent]) next[parent] = true;
+        // إضافة قسم تشمل رفع صورته، كما هو مطلوب في تدفق الشاشة.
+        if (key === 'erp.products.categories.create') next['erp.products.categories.image'] = true;
+      } else {
+        // إغلاق شاشة/إجراء رئيسي يغلق كل ما تحته، فلا تبقى أزرار يتيمة.
+        for (const child of ERP_PERMISSION_KEYS) {
+          let parent = ERP_PERMISSION_PARENT[child];
+          while (parent) {
+            if (parent === key) { next[child] = false; break; }
+            parent = ERP_PERMISSION_PARENT[parent];
+          }
+        }
+      }
+      return next;
+    };
+    creating ? setPerms(change) : setDraft(change);
+  };
 
   const shownModules = useMemo(() => {
     const q = permissionQuery.trim().toLowerCase();
