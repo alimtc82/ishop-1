@@ -33,7 +33,7 @@ export default function ShopProductDetails(){
   if(!p)return;
   const title=p.name;
   const description=p.notes?.trim()||`اكتشف ${p.name} على APP TECH`;
-  const imageUrl=publicMediaUrl('product-images',(p.images||[])[0])||`${window.location.origin}/og-image.jpg`;
+  const imageUrl=publicMediaUrl('product-images',(p.images||[])[0])||`${window.location.origin}/app-tech-og.png`;
   document.title=title;
   updateMeta('meta[name="description"]','content',description);
   updateMeta('meta[property="og:title"]','content',title);
