@@ -1,5 +1,7 @@
 const FALLBACK_TITLE = 'APP TECH';
 const FALLBACK_DESCRIPTION = 'بوابتك الآمنة إلى العالم الرقمي';
+const DEFAULT_SUPABASE_URL = 'https://xsanzqeumjdyiwkutepj.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InhzYW56cWV1bWpkeWl3a3V0ZXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNjE0MzMsImV4cCI6MjA5MzgzNzQzM30.Fh4ue0HT_NHqAv8Pi2kEm6MAMrWwhJLnuGrQSqE4lW0';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -72,10 +74,10 @@ export default async function handler(request, response) {
   let image = fallbackImage;
   let type = 'website';
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
-  if (id && supabaseUrl && supabaseKey) {
+  if (id) {
     try {
       if (isDevicePath) {
         const endpoint = new URL('/rest/v1/devices', supabaseUrl);
