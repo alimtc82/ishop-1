@@ -1,6 +1,6 @@
 const SOCIAL_CRAWLERS = /facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|slackbot|googlebot|bingbot|pinterest|skypeuripreview|instagram/i;
 
-export async function middleware(request) {
+export default async function middleware(request) {
   const userAgent = request.headers.get('user-agent') || '';
   if (!SOCIAL_CRAWLERS.test(userAgent)) return;
 
@@ -22,8 +22,7 @@ export async function middleware(request) {
     });
     if (!preview.ok) return;
 
-    const html = await preview.text();
-    return new Response(html, {
+    return new Response(await preview.text(), {
       status: 200,
       headers: {
         'content-type': 'text/html; charset=utf-8',
