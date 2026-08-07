@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchDevices, fetchDevicePrices } from '../lib/api';
+import { useLiveSync } from '../context/LiveSyncContext';
 import { formatBattery, formatDate, formatPhone } from '../utils/format';
 
 /**
@@ -75,8 +76,8 @@ export function useDevices({ guest }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       // الأسعار محروسة: لو الجدول لسه مش موجود، نكمّل من غير أسعار
@@ -96,11 +97,22 @@ export function useDevices({ guest }) {
     } catch (e) {
       setError(e.message || 'فشل تحميل البيانات');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [guest]);
 
   useEffect(() => { load(); }, [load]);
+
+  // تحديث خفيف في الخلفية عند أي تغيير حيّ — بدون remount ولا سبينر ولا إعادة تحميل للصور.
+  // (للزائر تفضل revision = 0 دائمًا فلا يحدث أي تحديث إضافي.)
+  const { revision } = useLiveSync();
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  const firstRevision = useRef(true);
+  useEffect(() => {
+    if (firstRevision.current) { firstRevision.current = false; return; }
+    loadRef.current(true);
+  }, [revision]);
 
   return { records, archived, loading, error, reload: load };
 }
