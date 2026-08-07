@@ -29,6 +29,19 @@ export const GUEST_DEVICE_COLS = [
   'phone', 'date', 'archived', 'images',
 ].join(',');
 
+/**
+ * أعمدة الجهاز التي تقرأها الواجهة فعليًا للمستخدم المسجّل (normalize في useDevices).
+ * أي عمود خارج القائمة يُهمَل في التطبيع أصلًا، فجلبه بـ select('*') إهدار.
+ * مستبعَد عمدًا: price, notes, imgs_removed, customer_id (لا تُقرأ من نتيجة القائمة).
+ */
+export const DEVICE_COLS = [
+  'id', 'device_code', 'model', 'brand', 'images', 'storage', 'battery',
+  'cycles', 'color', 'sim', 'box', 'repair', 'tax', 'warranty', 'warranty_date',
+  'lock', 'defects', 'extras', 'addedby', 'phone', 'date',
+  'archived', 'archive_reason', 'buyer_name', 'buyer_phone', 'archive_date',
+  'archived_at', 'archived_by', 'archived_seller', 'imei', 'owner_id', 'branch',
+].join(',');
+
 // مفاتيح localStorage — لازم تفضل بأسمائها عشان المستخدمين الحاليين
 // ما يفقدوش إعداداتهم
 export const LS_KEYS = {
