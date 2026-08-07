@@ -17,7 +17,7 @@ export function publicMediaUrl(bucket, path) {
 export async function uploadMedia(bucket, file, folder = 'catalog') {
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const safe = `${folder}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from(bucket).upload(safe, file, { cacheControl: '3600', upsert: false });
+  const { error } = await supabase.storage.from(bucket).upload(safe, file, { cacheControl: '31536000', upsert: false });
   if (error) throw error;
   return safe;
 }
