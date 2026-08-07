@@ -258,7 +258,7 @@ export async function uploadDeviceImage(file, deviceId) {
 
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, compressed, { contentType: 'image/jpeg', upsert: false });
+    .upload(path, compressed, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
   if (error) throw error;
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
@@ -271,7 +271,7 @@ export async function uploadUserAvatar(file, userKey) {
   const compressed = await compressImage(file);
   const safeKey = String(userKey || 'user').replace(/[^a-zA-Z0-9_-]/g, '_');
   const path = `users/${safeKey}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, { contentType: 'image/jpeg', upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
   if (error) throw error;
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
@@ -290,7 +290,7 @@ export async function uploadIllustration(file, badgeKey) {
   const path = `illustrations/${badgeKey}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, compressed, { contentType: 'image/jpeg', upsert: false });
+    .upload(path, compressed, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
