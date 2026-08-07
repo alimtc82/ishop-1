@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { GUEST_DEVICE_COLS, MAX_IMG_SIZE } from './constants';
+import { GUEST_DEVICE_COLS, DEVICE_COLS, MAX_IMG_SIZE } from './constants';
 import { safeUrl } from '../utils/safeUrl';
 import { markCustomerLogin, clearCustomerLogin, isCustomerSession } from './customerSession';
 
@@ -53,7 +53,7 @@ export async function fetchDevices({ guest = false } = {}) {
   if (guest) {
     q = q.select(GUEST_DEVICE_COLS).eq('archived', false);
   } else {
-    q = q.select('*');
+    q = q.select(DEVICE_COLS);
   }
 
   const { data, error } = await q.order('id', { ascending: false });
