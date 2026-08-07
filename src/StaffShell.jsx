@@ -135,7 +135,7 @@ export default function StaffShell() {
       </header>
 
       <main className="relative z-1 mx-auto max-w-5xl px-4">
-        <Routes key={`live-${revision}`}>
+        <Routes>
           <Route path="/" element={<Navigate to="/devices" replace />} />
           <Route path="/devices" element={<Devices />} />
           <Route path="/d/:code" element={<DevicePage />} />
