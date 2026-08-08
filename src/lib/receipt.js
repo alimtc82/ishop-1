@@ -35,6 +35,7 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
   });
   const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
   const r = device || {};
+  const branchName = r.branch || 'الفرع';
 
   // اختيار الختم ديناميكيًا حسب اسم المستخدم المؤرشِف
   const u = String(username || '').toLowerCase();
@@ -71,6 +72,12 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
   .field-val{font-size:13px;font-weight:700;color:#111}
   .stmt{background:#fffbf0;border:1.5px solid #c9a84c;border-radius:10px;padding:8px 12px;text-align:center;margin-bottom:10px}
   .stmt p{font-size:13px;font-weight:700;color:#5a4200;line-height:1.7}
+  .warranty{border:1px solid #e8e0cc;border-radius:10px;padding:9px 12px;margin-bottom:10px;line-height:1.65}
+  .warranty h4{color:#8a6500;font-size:12px;margin-bottom:4px}
+  .warranty p,.warranty li{font-size:10px;color:#333}
+  .warranty ul{padding-right:18px;margin:4px 0}
+  .warranty-follow{text-align:center;margin-top:7px;padding-top:7px;border-top:1px dashed #c9a84c}
+  .warranty-follow a{display:inline-block;color:#755300;font-weight:900;text-decoration:underline;direction:ltr}
   .seal{display:flex;justify-content:center;margin:6px 0 2px}
   .seal img{width:120px;height:120px;object-fit:contain}
   .sig-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px}
@@ -119,6 +126,26 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
 
       <div class="stmt">
         <p>تم تسليم الجهاز بحالته المذكورة أعلاه، وأقر المستلم بمعاينته والموافقة عليه.</p>
+      </div>
+
+      <div class="warranty">
+        <h4>ضمان الجهاز المستعمل</h4>
+        <p>يضمن ${esc(branchName)} الجهاز المستعمل الموضح أعلاه لمدة 30 يومًا من تاريخ الاستلام ضد عيوب التشغيل غير الناتجة عن سوء الاستخدام.</p>
+        <ul>
+          <li>الضمان لا يشمل التعرض للسوائل أو الرطوبة.</li>
+          <li>لا يشمل الكسر أو الصدمات أو الحريق.</li>
+          <li>لا يشمل سوء الاستخدام أو العبث بالجهاز.</li>
+          <li>لا يشمل الفك أو الإصلاح خارج المركز.</li>
+          <li>لا يشمل تلف الشاشة أو الهيكل.</li>
+          <li>لا يشمل الأعطال الناتجة عن ملحقات أو شواحن غير مناسبة.</li>
+          <li>يشترط تقديم الإيصال وخضوع الجهاز للفحص الفني.</li>
+        </ul>
+        <div class="warranty-follow">
+          <p>يمكنك متابعة حالة الضمان الخاصة بك من خلال الموقع الرسمي</p>
+          <a href="https://apptech.mtc-group.online" target="_blank" rel="noopener noreferrer">https://apptech.mtc-group.online</a>
+          <p>✨ كما يمكنك زيارة الموقع لمتابعة كل ما هو جديد.</p>
+          <p><strong>شكرًا لتعاملكم معنا</strong></p>
+        </div>
       </div>
 
       <div class="seal"><img src="${stampUrl}" alt="ختم APP TECH" /></div>

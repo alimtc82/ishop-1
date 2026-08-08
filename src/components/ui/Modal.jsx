@@ -19,6 +19,7 @@ export default function Modal({
   children,
   actions,
   closeOnOverlay = true,
+  overlayClassName = '',
 }) {
   const boxRef = useRef(null);
   const lastFocused = useRef(null);
@@ -55,7 +56,7 @@ export default function Modal({
 
   return createPortal(
     <div
-      className="modal-overlay show"
+      className={`modal-overlay show ${overlayClassName}`.trim()}
       onClick={closeOnOverlay ? (e) => e.target === e.currentTarget && onClose?.() : undefined}
     >
       <div

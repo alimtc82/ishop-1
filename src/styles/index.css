@@ -338,6 +338,8 @@
   padding: 16px 0 32px;
 }
 .modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal-overlay.archive-modal-overlay { background: var(--bg); }
+.modal-overlay.customer-modal-overlay { z-index: 10010; background: rgba(0, 0, 0, 0.88); }
 .modal {
   background: var(--card);
   border: 1px solid var(--border);
