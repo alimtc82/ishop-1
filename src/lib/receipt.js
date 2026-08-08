@@ -1,3 +1,5 @@
+import { getBranchProfile } from './branchProfiles';
+
 /**
  * إيصال تسليم الجهاز — نموذج A4 للطباعة.
  * منقول من printArchiveReceipt (ui.js) بنفس التصميم.
@@ -9,39 +11,66 @@
  * غير كده بيستخدم نموذج A4 الأصلي بختمه.
  */
 export async function printReceipt(args) {
+  const issuerBranch = args.issuerBranch || args.device?.branch || '';
+  const issuerProfile = await getBranchProfile(issuerBranch).catch(() => ({}));
   try {
     const { getPrintSettings, printUsedDeviceReceipt } = await import('./printSettings');
     const d = args.device || {};
     // branch: من الجهاز مباشرةً (d.branch) — يُستخدم لتحديد إعدادات الطباعة الصحيحة
-    const branch = d.branch || null;
+    const branch = issuerBranch || null;
     const s = await getPrintSettings(branch);
     if (s.paper === 'thermal') {
       return printUsedDeviceReceipt({
-        model: d.model, storage: d.storage, color: d.color,
-        imei: args.imei || d.imei, battery: d.battery, condition: d.condition,
+        model: d.model,
+        storage: d.storage,
+        color: d.color,
+        imei: args.imei || d.imei,
+        battery: d.battery,
+        condition: d.condition,
         price: d.price ?? d.sale_price,
-        seller_name: args.buyerName, seller_phone: args.buyerPhone,
+        seller_name: args.seller,
+        seller_phone: args.sellerPhone,
         date: args.archiveDate,
         branch,
+        branch_name: issuerBranch,
+        branch_logo: issuerProfile.logo_url,
+        branch_stamp: issuerProfile.stamp_url,
+        branch_address: issuerProfile.show_address_on_documents ? issuerProfile.address : '',
       });
     }
-  } catch { /* لو فشل، نكمّل بنموذج A4 الأصلي */ }
-  return printReceiptA4(args);
+  } catch {
+    /* لو فشل، نكمّل بنموذج A4 الأصلي */
+  }
+  return printReceiptA4({ ...args, issuerBranch, issuerProfile });
 }
 
-export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDate, username, seller }) {
-  const today = archiveDate || new Date().toLocaleDateString('ar-EG', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  });
+export function printReceiptA4({
+  device,
+  buyerName,
+  buyerPhone,
+  imei,
+  archiveDate,
+  seller,
+  sellerPhone,
+  issuerBranch,
+  issuerProfile = {},
+}) {
+  const today =
+    archiveDate ||
+    new Date().toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
   const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
   const r = device || {};
 
-  // اختيار الختم ديناميكيًا حسب اسم المستخدم المؤرشِف
-  const u = String(username || '').toLowerCase();
-  const stampFile = u === 'apptech' ? 'apptech' : u === 'mtcstore' ? 'mtcstore' : 'mtcgroup';
-  const stampUrl = `${window.location.origin}/stamps/${stampFile}.png`;
+  const stampUrl = issuerProfile.stamp_url || '';
+  const logoUrl = issuerProfile.logo_url || '';
+  const shownAddress = issuerProfile.show_address_on_documents ? issuerProfile.address || '' : '';
 
-  const esc = (s) => String(s ?? '—').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  const esc = (s) =>
+    String(s ?? '—').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]);
 
   const field = (label, val, extra = '') =>
     `<div class="field ${extra}"><div class="field-label">${label}</div><div class="field-val">${esc(val)}</div></div>`;
@@ -92,7 +121,8 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
 <body>
   <div class="page">
     <div class="header">
-      <div class="brand">i<span>Shop</span></div>
+      ${logoUrl ? `<img src="${esc(logoUrl)}" alt="لوجو الفرع" style="height:54px;max-width:180px;object-fit:contain">` : '<div class="brand">i<span>Shop</span></div>'}
+      <div class="brand" style="font-size:16px">${esc(issuerBranch || 'iShop')}</div>
       <div class="doc-title">إذن تسليم جهاز</div>
       <div class="date-row">${today} — ${time}</div>
     </div>
@@ -108,20 +138,34 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
         </div>
       </div>
 
-      ${buyerName ? `
+      ${
+        buyerName
+          ? `
       <div class="section">
         <div class="section-title">بيانات المشتري</div>
         <div class="grid">
           ${field('الاسم', buyerName)}
           ${field('الهاتف', buyerPhone)}
         </div>
-      </div>` : ''}
+      </div>`
+          : ''
+      }
+
+      <div class="section">
+        <div class="section-title">بيانات البيع والإصدار</div>
+        <div class="grid">
+          ${field('البائع', seller || '—')}
+          ${field('هاتف البائع (هاتف الفرع)', sellerPhone || '—')}
+          ${field('الفرع المصدر', issuerBranch || '—', 'full')}
+          ${shownAddress ? field('عنوان الفرع', shownAddress, 'full') : ''}
+        </div>
+      </div>
 
       <div class="stmt">
         <p>تم تسليم الجهاز بحالته المذكورة أعلاه، وأقر المستلم بمعاينته والموافقة عليه.</p>
       </div>
 
-      <div class="seal"><img src="${stampUrl}" alt="ختم APP TECH" /></div>
+      ${stampUrl ? `<div class="seal"><img src="${esc(stampUrl)}" alt="ختم الفرع" /></div>` : ''}
 
       <div class="sig-row">
         <div class="sig-box"><div class="sig-line"></div><div class="sig-label">توقيع المُسلِّم</div></div>
@@ -129,8 +173,8 @@ export function printReceiptA4({ device, buyerName, buyerPhone, imei, archiveDat
       </div>
     </div>
     <div class="footer">
-      <div class="footer-brand">MTC <span>Group</span></div>
-      <div class="footer-sub">بنها، مصر</div>
+      <div class="footer-brand">${esc(issuerBranch || 'iShop')}</div>
+      ${shownAddress ? `<div class="footer-sub">${esc(shownAddress)}</div>` : ''}
     </div>
   </div>
 

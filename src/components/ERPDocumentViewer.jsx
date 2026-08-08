@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { usePermissions } from '../context/PermissionContext';
 import { publicMediaUrl } from '../lib/productMedia';
+import { getBranchProfile } from '../lib/branchProfiles';
 const money = (v) => Number(v || 0).toLocaleString('ar-EG');
 const labels = {
   sales_invoice: 'فاتورة مبيعات',
@@ -57,7 +58,8 @@ export default function ERPDocumentViewer({ type, id, number, onClose }) {
   const { can } = usePermissions();
   const [data, setData] = useState(null),
     [loading, setLoading] = useState(true),
-    [error, setError] = useState('');
+    [error, setError] = useState(''),
+    [branchProfile, setBranchProfile] = useState({});
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -79,6 +81,7 @@ export default function ERPDocumentViewer({ type, id, number, onClose }) {
           r = x.data;
         }
         setData(r);
+        setBranchProfile(await getBranchProfile(r?.branch).catch(() => ({})));
       } catch (e) {
         setError(e.message);
       } finally {
@@ -120,8 +123,18 @@ export default function ERPDocumentViewer({ type, id, number, onClose }) {
           <div id="erp-document-print-area">
             <div className="flex items-start justify-between gap-3">
               <div>
+                {branchProfile.logo_url && (
+                  <img
+                    src={branchProfile.logo_url}
+                    alt=""
+                    className="mb-2 h-14 max-w-40 object-contain"
+                  />
+                )}
                 <div className="text-xs text-muted">{title}</div>
                 <h2 className="text-2xl font-black text-accent">{num}</h2>
+                {branchProfile.show_address_on_documents && branchProfile.address && (
+                  <div className="text-xs text-muted">{branchProfile.address}</div>
+                )}
               </div>
               <div className="actions flex gap-2">
                 {can('can_erp_document_print') && (
