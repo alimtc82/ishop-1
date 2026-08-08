@@ -31,6 +31,12 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [customerListOpen, setCustomerListOpen] = useState(false);
+  const [unknownPhone, setUnknownPhone] = useState(false);
+  const [dismissedPhone, setDismissedPhone] = useState('');
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ displayName: '', phone: '' });
+  const [customerBusy, setCustomerBusy] = useState(false);
+  const [customerErr, setCustomerErr] = useState('');
   const [wantImei, setWantImei] = useState(false);
   const [imei, setImei] = useState('');
   const [wantPrint, setWantPrint] = useState(false);
@@ -49,6 +55,8 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
     setStep(needPass ? 'pass' : 'reason');
     setPass(''); setPassErr(''); setReason('');
     setBuyerName(''); setBuyerPhone(''); setSelectedCustomerId(null); setCustomerListOpen(false);
+    setUnknownPhone(false); setDismissedPhone(''); setCustomerModalOpen(false);
+    setNewCustomer({ displayName: '', phone: '' }); setCustomerErr('');
     // V11.33: لو الجهاز اتسجّل بـ IMEI وقت الإدخال، نجيبه جاهز
     // بدل ما الموظف يعيد مسحه — وبرضه عشان ما يتمسحش بالغلط.
     const saved = device?.imei && device.imei !== '-' ? String(device.imei) : '';
@@ -56,8 +64,6 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
     setWantPrint(false); setErr('');
     setSeller(display || '');
   }, [device, needPass, display]);
-
-  if (!device) return null;
 
   async function checkPass() {
     setPassErr('');
@@ -83,6 +89,19 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
     return (p && normPhone(c.phone).includes(p)) || (n && normName(c.display_name).includes(n));
   }).slice(0, 6);
 
+  useEffect(() => {
+    const phone = normPhone(buyerPhone);
+    const exactMatch = phone && customers.some((c) => normPhone(c.phone) === phone);
+    if (reason !== 'sold' || phone.length < 7 || exactMatch || dismissedPhone === phone) {
+      setUnknownPhone(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setUnknownPhone(true), 500);
+    return () => window.clearTimeout(timer);
+  }, [buyerPhone, customers, dismissedPhone, reason]);
+
+  if (!device) return null;
+
   function chooseCustomer(c) {
     setSelectedCustomerId(c.id);
     setBuyerName(c.display_name || '');
@@ -93,6 +112,7 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
   function syncByPhone(value) {
     setBuyerPhone(value); setSelectedCustomerId(null); setCustomerListOpen(true);
     const p = normPhone(value);
+    if (p !== dismissedPhone) setUnknownPhone(false);
     const found = p ? customers.find((c) => normPhone(c.phone) === p) : null;
     if (found) chooseCustomer(found);
   }
@@ -102,6 +122,48 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
     const n = normName(value);
     const found = n ? customers.find((c) => normName(c.display_name) === n) : null;
     if (found) chooseCustomer(found);
+  }
+
+  function openCustomerModal() {
+    setNewCustomer({ displayName: buyerName, phone: buyerPhone });
+    setCustomerErr('');
+    setCustomerListOpen(false);
+    setCustomerModalOpen(true);
+  }
+
+  async function saveCustomer() {
+    const displayName = newCustomer.displayName.trim();
+    const phone = newCustomer.phone.trim();
+    if (!displayName) return setCustomerErr('اسم العميل مطلوب');
+
+    const existing = phone
+      ? customers.find((c) => normPhone(c.phone) === normPhone(phone))
+      : null;
+    if (existing) {
+      chooseCustomer(existing);
+      setCustomerModalOpen(false);
+      setUnknownPhone(false);
+      show('✓ الرقم مسجل بالفعل — تم اختيار العميل الموجود');
+      return;
+    }
+
+    setCustomerBusy(true);
+    setCustomerErr('');
+    try {
+      const id = await ensurePurchaseCustomer({ displayName, phone });
+      const created = { id, display_name: displayName, phone, source: 'purchase' };
+      setCustomers((list) => [...list, created].sort((a, b) =>
+        String(a.display_name || '').localeCompare(String(b.display_name || ''), 'ar')
+      ));
+      chooseCustomer(created);
+      setCustomerModalOpen(false);
+      setUnknownPhone(false);
+      show('✅ تمت إضافة العميل واختياره');
+    } catch (e) {
+      setCustomerErr(e.message || 'تعذر إضافة العميل');
+    } finally {
+      setCustomerBusy(false);
+    }
   }
 
   async function confirm() {
@@ -160,6 +222,7 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
       open={!!device}
       onClose={onClose}
       closeOnOverlay={false}
+      overlayClassName="archive-modal-overlay"
       icon="📦"
       title="أرشفة الجهاز"
       description={`📱 ${device.model}${device.code ? ` · #${device.code}` : ''}`}
@@ -211,7 +274,7 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
           {reason === 'sold' && (
             <div className="space-y-3 rounded-2xl border border-border bg-surface/50 p-3">
               <div className="relative">
-                <Input label="رقم هاتف المشتري" value={buyerPhone}
+                <Input label="رقم هاتف العميل" value={buyerPhone}
                        onFocus={() => setCustomerListOpen(true)}
                        onChange={(e) => syncByPhone(e.target.value)} inputMode="tel" />
                 {matchedCustomer && (
@@ -222,20 +285,35 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
                     {customerMatches.map((c) => (
                       <button key={c.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => chooseCustomer(c)}
                               className="block w-full border-b border-border px-3 py-2 text-start last:border-0 hover:bg-surface">
-                        <span className="block text-sm font-black text-text">{c.display_name}</span>
-                        <span className="num block text-xs text-muted">{c.phone || 'بدون رقم'}</span>
+                        <span className="block text-sm font-black text-accent">{c.display_name}</span>
+                        <span className="num block text-xs font-bold text-sky-500">{c.phone || 'بدون رقم'}</span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="relative">
-                <Input label="اسم المشتري *" value={buyerName}
-                       onFocus={() => setCustomerListOpen(true)}
-                       onChange={(e) => syncByName(e.target.value)} />
-                {matchedCustomer && (
-                  <span className="absolute end-3 top-8 text-sm font-black text-green-600" title="عميل موجود">✓</span>
-                )}
+              {unknownPhone && (
+                <div className="rounded-xl border border-amber-500/60 bg-amber-500/10 p-3">
+                  <p className="mb-2 text-xs font-bold text-amber-600">رقم الهاتف غير موجود في قائمة العملاء. هل تريد إضافة عميل جديد؟</p>
+                  <div className="flex gap-2">
+                    <button type="button" className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-black"
+                            onClick={() => { setDismissedPhone(normPhone(buyerPhone)); setUnknownPhone(false); }}>لا</button>
+                    <button type="button" className="flex-1 rounded-lg bg-accent px-3 py-2 text-xs font-black text-on-accent"
+                            onClick={openCustomerModal}>نعم، إضافة عميل</button>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-[minmax(0,1fr)_44px] items-end gap-2">
+                <div className="relative">
+                  <Input label="اسم المشتري *" value={buyerName}
+                         onFocus={() => setCustomerListOpen(true)}
+                         onChange={(e) => syncByName(e.target.value)} />
+                  {matchedCustomer && (
+                    <span className="absolute end-3 top-8 text-sm font-black text-green-600" title="عميل موجود">✓</span>
+                  )}
+                </div>
+                <button type="button" onClick={openCustomerModal} aria-label="إضافة عميل جديد" title="إضافة عميل جديد"
+                        className="grid h-11 place-items-center rounded-xl border border-accent-line bg-accent-soft text-2xl font-black text-accent">+</button>
               </div>
               {matchedCustomer ? (
                 <p className="text-xs font-black text-green-600">✓ عميل موجود — تم ربط الاسم ورقم الهاتف تلقائيًا</p>
@@ -284,6 +362,27 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
           </div>
         </div>
       )}
+      <Modal
+        open={customerModalOpen}
+        onClose={() => !customerBusy && setCustomerModalOpen(false)}
+        closeOnOverlay={!customerBusy}
+        overlayClassName="customer-modal-overlay"
+        icon="👤"
+        title="إضافة عميل جديد"
+        description="سيتم اختيار العميل وربطه بعملية الأرشفة فور الحفظ"
+      >
+        <div className="space-y-3 text-start">
+          <Input label="اسم العميل *" value={newCustomer.displayName}
+                 onChange={(e) => setNewCustomer((v) => ({ ...v, displayName: e.target.value }))} autoFocus />
+          <Input label="رقم هاتف العميل" value={newCustomer.phone} inputMode="tel"
+                 onChange={(e) => setNewCustomer((v) => ({ ...v, phone: e.target.value }))} />
+          {customerErr && <p className="rounded-xl bg-danger/10 px-3 py-2 text-xs font-bold text-danger">{customerErr}</p>}
+          <div className="flex gap-2">
+            <Button className="flex-1" loading={customerBusy} onClick={saveCustomer}>إضافة واختيار العميل</Button>
+            <Button variant="plain" disabled={customerBusy} onClick={() => setCustomerModalOpen(false)}>إلغاء</Button>
+          </div>
+        </div>
+      </Modal>
     </Modal>
   );
 }

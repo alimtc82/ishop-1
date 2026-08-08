@@ -145,6 +145,11 @@ export function baseCss(s, thermal) {
   .tot{border-top:1px dashed #000;margin-top:6px;padding-top:4px}
   .tot .row{font-size:${11 * scale}px}
   .tot .grand{font-size:${13 * scale}px;font-weight:900}
+  .warranty{border-top:1px dashed #000;margin-top:7px;padding-top:6px;font-size:${8.5 * scale}px;line-height:1.45}
+  .warranty h4{text-align:center;font-size:${10 * scale}px;margin-bottom:3px}
+  .warranty ul{padding-right:14px;margin:3px 0}
+  .warranty .follow{text-align:center;margin-top:5px}
+  .warranty a{color:#000;font-weight:900;text-decoration:underline;direction:ltr;display:inline-block}
   .foot{text-align:center;border-top:1px dashed #000;margin-top:8px;padding-top:6px;font-size:${9 * scale}px;white-space:pre-line}
   .no-print{margin:6px 0;text-align:center}
   @page{size:${w}mm auto;margin:0}
@@ -165,6 +170,11 @@ export function baseCss(s, thermal) {
   th{background:#f2f2f2}
   .tot{margin-top:14px;border:2px solid #222;padding:10px}
   .grand{font-size:${15 * scale}px;font-weight:900}
+  .warranty{margin-top:14px;border:1px solid #bbb;border-radius:8px;padding:10px;font-size:${10 * scale}px;line-height:1.6}
+  .warranty h4{font-size:${12 * scale}px;margin-bottom:5px}
+  .warranty ul{padding-right:18px;margin:5px 0}
+  .warranty .follow{text-align:center;margin-top:8px;padding-top:7px;border-top:1px dashed #999}
+  .warranty a{color:#111;font-weight:900;text-decoration:underline;direction:ltr;display:inline-block}
   .foot{margin-top:22px;padding-top:12px;border-top:2px solid #222;font-size:${11 * scale}px;line-height:1.8;white-space:pre-line}
   .no-print{margin-bottom:12px}
   @page{size:A4 portrait;margin:0}
@@ -232,6 +242,26 @@ export async function printUsedDeviceReceipt(d, opts = {}) {
   const thermal = (opts.paper || s.paper) === 'thermal';
   const date = d.date || new Date().toLocaleDateString('ar-EG');
   const title = 'إيصال استلام جهاز مستعمل';
+  const branchName = s.store_name || d.branch || 'الفرع';
+  const warrantyHtml = `<div class="warranty">
+    <h4>ضمان الجهاز المستعمل</h4>
+    <p>يضمن ${esc(branchName)} الجهاز المستعمل الموضح أعلاه لمدة 30 يومًا من تاريخ الاستلام ضد عيوب التشغيل غير الناتجة عن سوء الاستخدام.</p>
+    <ul>
+      <li>الضمان لا يشمل التعرض للسوائل أو الرطوبة.</li>
+      <li>لا يشمل الكسر أو الصدمات أو الحريق.</li>
+      <li>لا يشمل سوء الاستخدام أو العبث بالجهاز.</li>
+      <li>لا يشمل الفك أو الإصلاح خارج المركز.</li>
+      <li>لا يشمل تلف الشاشة أو الهيكل.</li>
+      <li>لا يشمل الأعطال الناتجة عن ملحقات أو شواحن غير مناسبة.</li>
+      <li>يشترط تقديم الإيصال وخضوع الجهاز للفحص الفني.</li>
+    </ul>
+    <div class="follow">
+      <p>يمكنك متابعة حالة الضمان الخاصة بك من خلال الموقع الرسمي</p>
+      <a href="https://apptech.mtc-group.online" target="_blank" rel="noopener noreferrer">https://apptech.mtc-group.online</a>
+      <p>✨ كما يمكنك زيارة الموقع لمتابعة كل ما هو جديد.</p>
+      <p><b>شكرًا لتعاملكم معنا</b></p>
+    </div>
+  </div>`;
 
   const rows = [
     ['الموديل', d.model], ['الذاكرة', d.storage], ['اللون', d.color],
@@ -244,12 +274,14 @@ export async function printUsedDeviceReceipt(d, opts = {}) {
     ? `${headerHtml(s, title, date)}
        ${rows.map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}
        <div class="tot"><div class="row"><span>التوقيع</span><span>____________</span></div></div>
+       ${warrantyHtml}
        ${footerHtml(s, true)}`
     : `${headerHtml(s, title, date)}
        <table><tbody>
        ${rows.map(([k, v]) => `<tr><th style="width:32%">${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}
        </tbody></table>
        <div class="tot">أقرّ باستلام المبلغ المذكور وتسليم الجهاز بحالته الموضحة أعلاه.</div>
+       ${warrantyHtml}
        <div class="meta" style="margin-top:26px">
          <div class="box">توقيع البائع<br><br><br></div>
          <div class="box">توقيع الموظف<br><br><br></div>
