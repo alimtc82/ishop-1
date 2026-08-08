@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible problem in iShop
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include passwords, access tokens, customer data, or production secrets.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is wrong, and what should happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and affected users
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 15.5.x
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or screenshots
+      description: Remove secrets and personal or customer data first.
+  - type: checkboxes
+    id: sensitive_scope
+    attributes:
+      label: Sensitive areas
+      options:
+        - label: This may affect business logic.
+        - label: This may affect Supabase, the database, authentication, or RLS.
+        - label: This may affect backward compatibility.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List the observable conditions that confirm the bug is fixed.
+    validations:
+      required: true

@@ -5,15 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "mkdir -p public && cp app-tech-og.png public/app-tech-og.png && vite build",
+    "prebuild": "node -e \"const fs=require('fs');fs.mkdirSync('public',{recursive:true});fs.copyFileSync('app-tech-og.png','public/app-tech-og.png')\"",
+    "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .js,.jsx --fix || true",
+    "lint": "eslint src --ext .js,.jsx",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\"",
-    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" || true",
-    "test": "jest --passWithNoTests || true",
-    "test:watch": "jest --watch || true",
-    "test:coverage": "jest --coverage || true",
-    "type-check": "tsc --noEmit || true"
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\"",
+    "test": "jest --passWithNoTests --runInBand",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -26,16 +28,17 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "tailwindcss": "^4.0.0",
-    "vite": "^6.0.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.1.1",
-    "jest": "^29.7.0",
     "@babel/preset-env": "^7.23.6",
     "@babel/preset-react": "^7.23.3",
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
     "babel-jest": "^29.7.0",
-    "typescript": "^5.3.3"
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.1.1",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.3.3",
+    "vite": "^6.0.0"
   }
 }

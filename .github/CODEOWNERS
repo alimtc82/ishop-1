@@ -1,0 +1,13 @@
+# Default repository owner
+* @alimtc82
+
+# Sensitive application and data-access areas
+/src/lib/ @alimtc82
+/src/context/ @alimtc82
+/api/ @alimtc82
+/supabase/ @alimtc82
+
+# Repository automation and governance
+/.github/ @alimtc82
+/AGENTS.md @alimtc82
+/CONTRIBUTING.md @alimtc82
