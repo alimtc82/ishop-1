@@ -70,16 +70,73 @@ export async function fetchDevices({ guest = false } = {}) {
 // أعلام الصلاحيات اللي بقت تُقرأ من الدور (V11.21). req_* مش منهم —
 // دول خصائص أمان فردية بتفضل على الموظف.
 const ROLE_PERM_KEYS = [
-  'can_create', 'can_edit', 'can_delete', 'can_archive',
+  'can_create',
+  'can_edit',
+  'can_delete',
+  'can_archive',
   'can_settings',
-  'can_settings_users', 'can_settings_roles', 'can_settings_branches', 'can_settings_catalog',
-  'can_settings_reports', 'can_settings_channels', 'can_settings_prices', 'can_settings_illus',
-  'can_settings_ticker', 'can_settings_printing',
-  'can_settings_warranty', 'can_settings_reviews', 'can_settings_customers',
+  'can_settings_users',
+  'can_settings_roles',
+  'can_settings_branches',
+  'can_settings_catalog',
+  'can_settings_reports',
+  'can_settings_channels',
+  'can_settings_prices',
+  'can_settings_illus',
+  'can_settings_ticker',
+  'can_settings_printing',
+  'can_settings_warranty',
+  'can_settings_reviews',
+  'can_settings_customers',
   'can_manage_custom_models',
-  'can_customer_create', 'can_customer_card', 'can_customer_phone', 'can_customer_call', 'can_customer_whatsapp',
-  'can_erp','can_erp_products','can_erp_purchases','can_erp_inventory','can_erp_sales','can_erp_pos','can_erp_finance','can_erp_reports','can_erp_audit','can_erp_post','can_erp_cancel',
-  'can_erp_product_create','can_erp_product_edit','can_erp_product_import','can_erp_product_export','can_erp_purchase_create','can_erp_purchase_return','can_erp_sale_create','can_erp_sale_return','can_erp_discount','can_erp_change_sale_price','can_erp_view_purchase_price','can_erp_stock_opening','can_erp_stock_transfer','can_erp_stock_adjust','can_erp_customer_create','can_erp_customer_edit','can_erp_customer_import','can_erp_customer_export','can_erp_supplier_create','can_erp_supplier_edit','can_erp_supplier_import','can_erp_supplier_export','can_erp_collect','can_erp_pay_supplier','can_erp_treasury_create','can_erp_treasury_transfer','can_erp_expense_create','can_erp_view_treasury_balance','can_erp_report_export','can_erp_backup_export','can_erp_print','can_erp_all_branches',
+  'can_customer_create',
+  'can_customer_card',
+  'can_customer_phone',
+  'can_customer_call',
+  'can_customer_whatsapp',
+  'can_erp',
+  'can_erp_products',
+  'can_erp_purchases',
+  'can_erp_inventory',
+  'can_erp_sales',
+  'can_erp_pos',
+  'can_erp_finance',
+  'can_erp_reports',
+  'can_erp_audit',
+  'can_erp_post',
+  'can_erp_cancel',
+  'can_erp_product_create',
+  'can_erp_product_edit',
+  'can_erp_product_import',
+  'can_erp_product_export',
+  'can_erp_purchase_create',
+  'can_erp_purchase_return',
+  'can_erp_sale_create',
+  'can_erp_sale_return',
+  'can_erp_discount',
+  'can_erp_change_sale_price',
+  'can_erp_view_purchase_price',
+  'can_erp_stock_opening',
+  'can_erp_stock_transfer',
+  'can_erp_stock_adjust',
+  'can_erp_customer_create',
+  'can_erp_customer_edit',
+  'can_erp_customer_import',
+  'can_erp_customer_export',
+  'can_erp_supplier_create',
+  'can_erp_supplier_edit',
+  'can_erp_supplier_import',
+  'can_erp_supplier_export',
+  'can_erp_collect',
+  'can_erp_pay_supplier',
+  'can_erp_treasury_create',
+  'can_erp_treasury_transfer',
+  'can_erp_expense_create',
+  'can_erp_view_treasury_balance',
+  'can_erp_report_export',
+  'can_erp_backup_export',
+  'can_erp_print',
+  'can_erp_all_branches',
 ];
 
 export async function fetchMyUserRow(authId) {
@@ -116,7 +173,7 @@ export async function fetchMyUserRow(authId) {
         .eq('role_key', data.role);
       if (!dynamicError) {
         merged.permission_overrides = Object.fromEntries(
-          (dynamicRows || []).map((item) => [item.permission_key, item.allowed === true])
+          (dynamicRows || []).map((item) => [item.permission_key, item.allowed === true]),
         );
       }
       return merged;
@@ -130,10 +187,7 @@ export async function fetchMyUserRow(authId) {
 
 /** قائمة المستخدمين النشطين — للأدمن. مطابق لـ auth.js:8 */
 export async function fetchUsers() {
-  const { data, error } = await supabase
-    .from('ishop_users')
-    .select('*')
-    .eq('is_active', true);
+  const { data, error } = await supabase.from('ishop_users').select('*').eq('is_active', true);
   if (error) throw error;
   return data ?? [];
 }
@@ -156,7 +210,6 @@ export function deviceImageUrl(url) {
 //  منقولة من data.js بنفس المنطق والقيم بالظبط.
 // ════════════════════════════════════════════════════════════════
 
-
 const IMG_QUALITY = 0.82; // نفس قيمة الأصل
 export const MAX_IMAGES = 4;
 
@@ -169,9 +222,7 @@ export async function nextDeviceCode() {
   if (error) throw error;
 
   let next = 88;
-  const nums = (data ?? [])
-    .map((r) => parseInt(r.device_code))
-    .filter((n) => !isNaN(n));
+  const nums = (data ?? []).map((r) => parseInt(r.device_code)).filter((n) => !isNaN(n));
   if (nums.length) next = Math.max(...nums) + 1;
   return next.toString();
 }
@@ -237,10 +288,12 @@ export function compressImage(file) {
         canvas.toBlob(
           (blob) => {
             if (!blob) return reject(new Error('فشل ضغط الصورة'));
-            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+            resolve(
+              new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }),
+            );
           },
           'image/jpeg',
-          IMG_QUALITY
+          IMG_QUALITY,
         );
       };
       img.onerror = () => reject(new Error('فشل قراءة الصورة'));
@@ -256,22 +309,27 @@ export async function uploadDeviceImage(file, deviceId) {
   const compressed = await compressImage(file);
   const path = `${deviceId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, compressed, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, {
+    contentType: 'image/jpeg',
+    cacheControl: '31536000',
+    upsert: false,
+  });
   if (error) throw error;
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
 
-
 // صورة المستخدم — نفس bucket الصور العام، داخل مسار users/
 export async function uploadUserAvatar(file, userKey) {
   const compressed = await compressImage(file);
   const safeKey = String(userKey || 'user').replace(/[^a-zA-Z0-9_-]/g, '_');
   const path = `users/${safeKey}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, {
+    contentType: 'image/jpeg',
+    cacheControl: '31536000',
+    upsert: false,
+  });
   if (error) throw error;
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
@@ -288,9 +346,11 @@ export async function deleteDeviceImage(url) {
 export async function uploadIllustration(file, badgeKey) {
   const compressed = await compressImage(file);
   const path = `illustrations/${badgeKey}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, compressed, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, {
+    contentType: 'image/jpeg',
+    cacheControl: '31536000',
+    upsert: false,
+  });
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
@@ -312,7 +372,10 @@ export async function fetchIllustrations(badgeKey) {
 // قراءة عامة لإعداد موقع بمفتاح (warranty_hero مثلاً)
 export async function fetchSetting(key) {
   const { data, error } = await supabase
-    .from('site_settings').select('value').eq('key', key).maybeSingle();
+    .from('site_settings')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle();
   if (error) return null;
   return data?.value ?? null;
 }
@@ -322,8 +385,18 @@ export async function fetchSetting(key) {
 export async function fetchCatalog() {
   try {
     const [typesRes, modelsRes, colorsRes, linksRes] = await Promise.all([
-      supabase.from('catalog_types').select('id,name,sort').eq('active', true).order('sort').order('name'),
-      supabase.from('catalog_models').select('id,name,type_id,sort').eq('active', true).order('sort').order('name'),
+      supabase
+        .from('catalog_types')
+        .select('id,name,sort')
+        .eq('active', true)
+        .order('sort')
+        .order('name'),
+      supabase
+        .from('catalog_models')
+        .select('id,name,type_id,sort')
+        .eq('active', true)
+        .order('sort')
+        .order('name'),
       supabase.from('catalog_colors').select('id,name_en,active,sort'),
       supabase.from('catalog_model_colors').select('model_id,color_id'),
     ]);
@@ -381,7 +454,10 @@ export async function fetchCatalogAll() {
 
 export async function fetchRoles() {
   const { data, error } = await supabase
-    .from('roles').select('*').order('sort', { ascending: true }).order('created_at', { ascending: true });
+    .from('roles')
+    .select('*')
+    .order('sort', { ascending: true })
+    .order('created_at', { ascending: true });
   if (error) throw error;
   return data || [];
 }
@@ -390,7 +466,7 @@ export async function fetchRoles() {
 export async function fetchBranchSellers() {
   const { data, error } = await supabase.rpc('branch_sellers');
   if (error) return [];
-  return (data || []).map((r) => r.display_name).filter(Boolean);
+  return (data || []).filter((r) => r.display_name);
 }
 
 // ── التقييمات ─────────────────────────────────────────────────
@@ -424,7 +500,8 @@ export async function signInCustomerWithFacebook() {
 export async function ensureCustomerProfile(user) {
   if (!user?.id) throw new Error('جلسة Facebook غير صالحة');
   const meta = user.user_metadata || {};
-  const displayName = meta.full_name || meta.name || meta.user_name || user.email?.split('@')[0] || 'عميل APP TECH';
+  const displayName =
+    meta.full_name || meta.name || meta.user_name || user.email?.split('@')[0] || 'عميل APP TECH';
   const avatarUrl = meta.avatar_url || meta.picture || null;
   const row = {
     auth_user_id: user.id,
@@ -460,16 +537,21 @@ export async function signOutCustomer() {
 }
 
 // إرسال رأي جديد مرتبط بالعميل. النشر المباشر/المراجعة بيتحدد من إعداد الأدمن.
-export async function submitReview({ branch, body, rating, customer, guestName = '', requireApproval = true }) {
+export async function submitReview({
+  branch,
+  body,
+  rating,
+  customer,
+  guestName = '',
+  requireApproval = true,
+}) {
   const isFacebook = Boolean(customer?.id);
-  const name = isFacebook
-    ? (customer.display_name || null)
-    : (String(guestName || '').trim() || null);
+  const name = isFacebook ? customer.display_name || null : String(guestName || '').trim() || null;
 
   const row = {
     branch: branch || '',
     customer_name: name,
-    avatar_url: isFacebook ? (customer.avatar_url || null) : null,
+    avatar_url: isFacebook ? customer.avatar_url || null : null,
     rating: Math.max(1, Math.min(5, Number(rating) || 5)),
     body: String(body || '').trim(),
     approved: !requireApproval,
@@ -481,12 +563,18 @@ export async function submitReview({ branch, body, rating, customer, guestName =
     // أول فرع يختاره عميل Facebook يحدد فرعه، عشان موظفي الفروع ما يشوفوش عملاء بعض.
     if (branch) {
       const { error: branchError } = await supabase
-        .from('customers').update({ branch, updated_at: new Date().toISOString() }).eq('id', customer.id);
+        .from('customers')
+        .update({ branch, updated_at: new Date().toISOString() })
+        .eq('id', customer.id);
       if (branchError) throw branchError;
     }
   }
 
-  const { data, error } = await supabase.from('reviews').insert(row).select('id, approved').single();
+  const { data, error } = await supabase
+    .from('reviews')
+    .insert(row)
+    .select('id, approved')
+    .single();
   if (error) throw error;
   return data;
 }
@@ -506,14 +594,20 @@ export async function fetchOwnReviews(customerId) {
 // العميل يقدر يتراجع عن رأيه المرتبط بحسابه في Facebook فقط.
 export async function deleteOwnReview(id, customerId) {
   if (!id || !customerId) throw new Error('تعذر تحديد التقييم');
-  const { error } = await supabase.from('reviews').delete().eq('id', id).eq('customer_id', customerId);
+  const { error } = await supabase
+    .from('reviews')
+    .delete()
+    .eq('id', id)
+    .eq('customer_id', customerId);
   if (error) throw error;
 }
 
 // عدد التقييمات المنتظرة الموافقة (للأدمن — RLS بيسمح له يشوف غير المعتمد)
 export async function fetchPendingReviewsCount() {
   const { count, error } = await supabase
-    .from('reviews').select('id', { count: 'exact', head: true }).eq('approved', false);
+    .from('reviews')
+    .select('id', { count: 'exact', head: true })
+    .eq('approved', false);
   if (error) return 0;
   return count || 0;
 }
@@ -552,7 +646,13 @@ export async function ensurePurchaseCustomer({ id, displayName, phone }) {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('customers')
-    .insert({ display_name: name, phone: tel || null, source: 'purchase', created_at: now, updated_at: now })
+    .insert({
+      display_name: name,
+      phone: tel || null,
+      source: 'purchase',
+      created_at: now,
+      updated_at: now,
+    })
     .select('id')
     .single();
   if (error) throw error;
@@ -560,11 +660,16 @@ export async function ensurePurchaseCustomer({ id, displayName, phone }) {
 }
 
 // أرشفة جهاز — reason: 'sold' | 'return'
-export async function archiveDevice(id, { reason, buyerName, buyerPhone, customerId, imei, archivedBy, seller }) {
+export async function archiveDevice(
+  id,
+  { reason, buyerName, buyerPhone, customerId, imei, archivedBy, seller },
+) {
   const archiveReason =
     reason === 'sold' ? 'تم البيع' : reason === 'return' ? 'مرتجع للبائع الأصلي' : '';
   const today = new Date().toLocaleDateString('ar-EG', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
 
   // نجيب صور الجهاز الحالية ونمسحها نهائيًا من الـ Storage وقت الأرشفة
@@ -582,17 +687,17 @@ export async function archiveDevice(id, { reason, buyerName, buyerPhone, custome
       archive_reason: archiveReason,
       buyer_name: reason === 'sold' ? buyerName || '' : '',
       buyer_phone: reason === 'sold' ? buyerPhone || '' : '',
-      customer_id: reason === 'sold' ? (customerId || null) : null,
+      customer_id: reason === 'sold' ? customerId || null : null,
       // V11.33: بقى في IMEI بيتسجّل وقت الإدخال. قبل كده السطر ده كان
       // `imei: imei || ''` فكان بيمسحه لو المودال ماكانش فيه رقم.
       // دلوقتي بنكتب بس لما يبقى في رقم فعلي.
       ...(imei ? { imei } : {}),
       archive_date: today,
       archived_at: new Date().toISOString(), // وقت فعلي لحساب ضمان الـ 30 يوم
-      archived_by: archivedBy || '',          // المؤرشِف (لاختيار الختم عند إعادة الطباعة)
-      archived_seller: seller || '',           // البائع (للإيصال وإعادة الطباعة)
-      images: [],               // اتشالت من الـ Storage
-      imgs_removed: hadImages,  // علامة للتنبيه وقت الإرجاع
+      archived_by: archivedBy || '', // المؤرشِف (لاختيار الختم عند إعادة الطباعة)
+      archived_seller: seller || '', // البائع (للإيصال وإعادة الطباعة)
+      images: [], // اتشالت من الـ Storage
+      imgs_removed: hadImages, // علامة للتنبيه وقت الإرجاع
     })
     .eq('id', id);
   if (error) throw error;
@@ -717,10 +822,7 @@ export async function getContactChannel(key) {
 
 // كل القنوات (للوحة الأدمن)
 export async function fetchContactChannels() {
-  const { data, error } = await supabase
-    .from('contact_channels')
-    .select('*')
-    .order('sort');
+  const { data, error } = await supabase.from('contact_channels').select('*').order('sort');
   if (error) throw error;
   return data ?? [];
 }
@@ -736,7 +838,11 @@ export async function fetchContactChannels() {
 
 /** تطبيع اسم الموديل — لازم يطابق دالة السيرفر normalize_model() */
 function normalizeModelKey(s) {
-  return String(s ?? '').replace(/\u00a0/g, ' ').trim().toLowerCase().replace(/\s+/g, ' ');
+  return String(s ?? '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
 }
 
 /**
@@ -762,7 +868,10 @@ export async function fetchCustomModels() {
  */
 export async function addCustomModel({ brand, model, scope = 'global', branchId = null }) {
   const cleanBrand = String(brand ?? '').trim();
-  const cleanModel = String(model ?? '').replace(/\u00a0/g, ' ').trim().replace(/\s+/g, ' ');
+  const cleanModel = String(model ?? '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
   if (!cleanModel) return { ok: false, error: 'اكتب اسم الموديل' };
 
   const key = normalizeModelKey(cleanModel);
@@ -783,7 +892,7 @@ export async function addCustomModel({ brand, model, scope = 'global', branchId 
     brand: cleanBrand || '-',
     model: cleanModel,
     scope: scope === 'local' ? 'local' : 'global',
-    branch_id: scope === 'local' ? (branchId || null) : null,
+    branch_id: scope === 'local' ? branchId || null : null,
     created_by: uid,
     is_active: true,
   };

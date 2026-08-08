@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getBranchProfile } from './branchProfiles';
 
 // ══════════════════════════════════════════════════════════════
 //  printSettings — إعدادات الطباعة الموحّدة (V13.9.2)
@@ -42,8 +43,14 @@ export const PRINT_DEFAULTS = {
 
 // الحقول الخاصة بكل فرع (يمكن تخصيصها لكل فرع على حدة)
 export const BRANCH_OVERRIDABLE_KEYS = [
-  'store_name', 'store_phone', 'store_address', 'logo_url',
-  'show_logo', 'footer_a4', 'footer_thermal', 'show_footer',
+  'store_name',
+  'store_phone',
+  'store_address',
+  'logo_url',
+  'show_logo',
+  'footer_a4',
+  'footer_thermal',
+  'show_footer',
 ];
 
 let _cache = null;
@@ -54,7 +61,8 @@ async function _loadRaw(force = false) {
   const out = { ...PRINT_DEFAULTS };
   try {
     const { data } = await supabase
-      .from('site_settings').select('key,value')
+      .from('site_settings')
+      .select('key,value')
       .in('key', ['print_settings', 'sales_invoice_footer']);
     for (const r of data || []) {
       if (r.key === 'print_settings') {
@@ -70,7 +78,9 @@ async function _loadRaw(force = false) {
       const lv = legacy && (typeof legacy.value === 'string' ? legacy.value : legacy.value?.text);
       if (lv) out.footer_a4 = String(lv);
     }
-  } catch { /* الافتراضي كفاية */ }
+  } catch {
+    /* الافتراضي كفاية */
+  }
   _cache = out;
   return out;
 }
@@ -82,13 +92,8 @@ async function _loadRaw(force = false) {
  */
 export async function getPrintSettings(branch = null, force = false) {
   const raw = await _loadRaw(force);
-
-  // لو مفيش فرع أو الفرع مش عنده إعدادات خاصة → رجّع الإعدادات العامة
-  if (!branch || !raw.branches?.[branch]) return raw;
-
-  // دمج إعدادات الفرع فوق الإعدادات العامة (فقط الحقول القابلة للتخصيص)
-  const branchOverrides = raw.branches[branch] || {};
   const merged = { ...raw };
+  const branchOverrides = branch ? raw.branches?.[branch] || {} : {};
   for (const key of BRANCH_OVERRIDABLE_KEYS) {
     // نستخدم قيمة الفرع فقط لو هي مش فاضية (مش '' أو null أو undefined)
     const val = branchOverrides[key];
@@ -96,18 +101,32 @@ export async function getPrintSettings(branch = null, force = false) {
       merged[key] = val;
     }
   }
+  if (branch) {
+    const profile = await getBranchProfile(branch).catch(() => ({}));
+    if (profile.logo_url) merged.logo_url = profile.logo_url;
+    if (profile.phone) merged.store_phone = profile.phone;
+    merged.store_name = branch;
+    merged.store_address = profile.show_address_on_documents ? profile.address || '' : '';
+  }
   return merged;
 }
 
-export function clearPrintCache() { _cache = null; }
+export function clearPrintCache() {
+  _cache = null;
+}
 
-export const esc = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
-const money = (n) => Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const esc = (s) =>
+  String(s ?? '').replace(
+    /[<>&"]/g,
+    (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c],
+  );
+const money = (n) =>
+  Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** ترويسة موحّدة (لوجو + بيانات المحل) */
 export function headerHtml(s, title, sub = '') {
-  const logo = s.show_logo && s.logo_url
-    ? `<img class="logo" src="${esc(s.logo_url)}" alt="">` : '';
+  const logo =
+    s.show_logo && s.logo_url ? `<img class="logo" src="${esc(s.logo_url)}" alt="">` : '';
   const info = [s.store_phone, s.store_address].filter(Boolean).map(esc).join(' · ');
   return `<div class="head">${logo}
     ${s.store_name ? `<div class="store">${esc(s.store_name)}</div>` : ''}
@@ -128,7 +147,8 @@ export function footerHtml(s, thermal) {
 export function baseCss(s, thermal) {
   const scale = Math.max(60, Math.min(160, Number(s.font_scale) || 100)) / 100;
   const w = s.thermal_width === '58' ? 58 : 80;
-  return thermal ? `
+  return thermal
+    ? `
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Cairo',Arial,sans-serif;color:#000;background:#fff;
        width:${w}mm;padding:3mm 2mm;font-size:${11 * scale}px;line-height:1.55}
@@ -149,7 +169,8 @@ export function baseCss(s, thermal) {
   .no-print{margin:6px 0;text-align:center}
   @page{size:${w}mm auto;margin:0}
   @media print{.no-print{display:none!important}}
-  ` : `
+  `
+    : `
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Cairo',Arial,sans-serif;color:#111;background:#fff;padding:14mm 10mm;font-size:${13 * scale}px}
   .head{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px}
@@ -175,14 +196,21 @@ export function baseCss(s, thermal) {
 /** يفتح نافذة ويطبع */
 export function openAndPrint(html, s, thermal) {
   const w = window.open('', '_blank', thermal ? 'width=420,height=760' : 'width=900,height=900');
-  if (!w) { alert('اسمح بالنوافذ المنبثقة عشان الطباعة تشتغل'); return; }
+  if (!w) {
+    alert('اسمح بالنوافذ المنبثقة عشان الطباعة تشتغل');
+    return;
+  }
   w.document.write(`<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
 <style>${baseCss(s, thermal)}</style></head><body>
 <div class="no-print"><button onclick="window.print()">🖨️ طباعة</button></div>
 ${html}</body></html>`);
   w.document.close();
-  if (s.auto_print !== false) setTimeout(() => { w.focus(); w.print(); }, 350);
+  if (s.auto_print !== false)
+    setTimeout(() => {
+      w.focus();
+      w.print();
+    }, 350);
 }
 
 // ── فاتورة بيع ────────────────────────────────────────────────
@@ -200,7 +228,7 @@ export async function printSalesInvoice(row, opts = {}) {
        <div class="row"><span>العميل</span><span>${esc(row.customer_name || 'عميل نقدي')}</span></div>
        <div class="row"><span>الفرع</span><span>${esc(row.branch || '—')}</span></div>
        <table><thead><tr><th>الصنف</th><th>كمية</th><th>سعر</th><th>إجمالي</th></tr></thead><tbody>
-       ${items.map((x) => `<tr><td>${esc(x.products?.name || '')}</td><td>${esc(x.quantity)}</td><td>${money(x.unit_price ?? x.unit_cost)}</td><td>${money(x.line_total ?? (Number(x.quantity || 0) * Number(x.unit_price ?? x.unit_cost ?? 0) - Number(x.discount || 0)))}</td></tr>`).join('')}
+       ${items.map((x) => `<tr><td>${esc(x.products?.name || '')}</td><td>${esc(x.quantity)}</td><td>${money(x.unit_price ?? x.unit_cost)}</td><td>${money(x.line_total ?? Number(x.quantity || 0) * Number(x.unit_price ?? x.unit_cost ?? 0) - Number(x.discount || 0))}</td></tr>`).join('')}
        </tbody></table>
        <div class="tot">
          <div class="row"><span>الإجمالي</span><span>${money(row.subtotal)}</span></div>
@@ -214,7 +242,7 @@ export async function printSalesInvoice(row, opts = {}) {
          <div class="box">الفرع<br><b>${esc(row.branch || '—')}</b></div>
        </div>
        <table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الإجمالي</th><th>السيريال / IMEI</th></tr></thead><tbody>
-       ${items.map((x) => `<tr><td>${esc(x.products?.sku || '')} · ${esc(x.products?.name || '')}</td><td>${esc(x.quantity)}</td><td>${money(x.unit_price ?? x.unit_cost)}</td><td>${money(x.discount)}</td><td>${money(x.line_total ?? (Number(x.quantity || 0) * Number(x.unit_price ?? x.unit_cost ?? 0) - Number(x.discount || 0)))}</td><td>${esc((x.serial_numbers || []).join(' / ') || '—')}</td></tr>`).join('')}
+       ${items.map((x) => `<tr><td>${esc(x.products?.sku || '')} · ${esc(x.products?.name || '')}</td><td>${esc(x.quantity)}</td><td>${money(x.unit_price ?? x.unit_cost)}</td><td>${money(x.discount)}</td><td>${money(x.line_total ?? Number(x.quantity || 0) * Number(x.unit_price ?? x.unit_cost ?? 0) - Number(x.discount || 0))}</td><td>${esc((x.serial_numbers || []).join(' / ') || '—')}</td></tr>`).join('')}
        </tbody></table>
        <div class="tot">
          <div>الإجمالي قبل الخصم: <b>${money(row.subtotal)}</b></div>
@@ -234,10 +262,15 @@ export async function printUsedDeviceReceipt(d, opts = {}) {
   const title = 'إيصال استلام جهاز مستعمل';
 
   const rows = [
-    ['الموديل', d.model], ['الذاكرة', d.storage], ['اللون', d.color],
-    ['IMEI', d.imei], ['البطارية', d.battery], ['الحالة', d.condition],
+    ['الموديل', d.model],
+    ['الذاكرة', d.storage],
+    ['اللون', d.color],
+    ['IMEI', d.imei],
+    ['البطارية', d.battery],
+    ['الحالة', d.condition],
     ['المبلغ', d.price != null ? money(d.price) : ''],
-    ['اسم العميل', d.seller_name], ['التليفون', d.seller_phone],
+    ['اسم العميل', d.seller_name],
+    ['التليفون', d.seller_phone],
   ].filter(([, v]) => String(v ?? '').trim() !== '');
 
   const body = thermal
@@ -259,4 +292,10 @@ export async function printUsedDeviceReceipt(d, opts = {}) {
   openAndPrint(body, s, thermal);
 }
 
-function safeParse(x) { try { return JSON.parse(x); } catch { return null; } }
+function safeParse(x) {
+  try {
+    return JSON.parse(x);
+  } catch {
+    return null;
+  }
+}

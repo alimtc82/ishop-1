@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../context/PermissionContext';
-import { verifyDeletePass, archiveDevice, fetchBranchSellers, fetchArchiveCustomers, ensurePurchaseCustomer } from '../lib/api';
+import {
+  verifyDeletePass,
+  archiveDevice,
+  fetchBranchSellers,
+  fetchArchiveCustomers,
+  ensurePurchaseCustomer,
+} from '../lib/api';
 import { useToast } from '../context/ToastContext';
 import { printReceipt } from '../lib/receipt';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import ImeiInput from './ImeiInput';
+import { fetchBranchProfiles } from '../lib/branchProfiles';
 
 /**
  * مودال الأرشفة — خطوتين زي الأصل:
@@ -16,7 +23,7 @@ import ImeiInput from './ImeiInput';
  */
 export default function ArchiveModal({ device, onArchived, onClose }) {
   const { hasDelPass, username } = useAuth();
-  const { requires, display } = usePermissions();
+  const { requires, display, primaryBranch } = usePermissions();
   const { show } = useToast();
 
   const needPass = !!(requires('req_arch_pass') && hasDelPass);
@@ -39,25 +46,43 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
 
   // البائع — الافتراضي المستخدم الحالي، أو اختيار من نفس الفرع
   const [sellers, setSellers] = useState([]);
+  const [branchProfiles, setBranchProfiles] = useState({});
   const [seller, setSeller] = useState(display || '');
   useEffect(() => {
-    fetchBranchSellers().then((list) => setSellers(list)).catch(() => setSellers([]));
-    fetchArchiveCustomers().then((list) => setCustomers(list)).catch(() => setCustomers([]));
+    fetchBranchSellers()
+      .then((list) => setSellers(list))
+      .catch(() => setSellers([]));
+    fetchBranchProfiles()
+      .then(setBranchProfiles)
+      .catch(() => setBranchProfiles({}));
+    fetchArchiveCustomers()
+      .then((list) => setCustomers(list))
+      .catch(() => setCustomers([]));
   }, [device]);
 
   useEffect(() => {
     setStep(needPass ? 'pass' : 'reason');
-    setPass(''); setPassErr(''); setReason('');
-    setBuyerName(''); setBuyerPhone(''); setSelectedCustomerId(null); setCustomerListOpen(false);
+    setPass('');
+    setPassErr('');
+    setReason('');
+    setBuyerName('');
+    setBuyerPhone('');
+    setSelectedCustomerId(null);
+    setCustomerListOpen(false);
     // V11.33: لو الجهاز اتسجّل بـ IMEI وقت الإدخال، نجيبه جاهز
     // بدل ما الموظف يعيد مسحه — وبرضه عشان ما يتمسحش بالغلط.
     const saved = device?.imei && device.imei !== '-' ? String(device.imei) : '';
-    setWantImei(Boolean(saved)); setImei(saved);
-    setWantPrint(false); setErr('');
+    setWantImei(Boolean(saved));
+    setImei(saved);
+    setWantPrint(false);
+    setErr('');
     setSeller(display || '');
   }, [device, needPass, display]);
 
   if (!device) return null;
+  const selectedSeller = sellers.find((x) => x.display_name === seller);
+  const sellerBranch = selectedSeller?.branch || primaryBranch || '';
+  const sellerPhone = branchProfiles[sellerBranch]?.phone || '';
 
   async function checkPass() {
     setPassErr('');
@@ -71,17 +96,25 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
   }
 
   const normPhone = (v) => String(v || '').replace(/\D/g, '');
-  const normName = (v) => String(v || '').trim().toLocaleLowerCase('ar');
+  const normName = (v) =>
+    String(v || '')
+      .trim()
+      .toLocaleLowerCase('ar');
   const matchedCustomer = selectedCustomerId
     ? customers.find((c) => c.id === selectedCustomerId)
-    : customers.find((c) => (buyerPhone && normPhone(c.phone) === normPhone(buyerPhone)) ||
-                            (buyerName && normName(c.display_name) === normName(buyerName)));
-  const customerMatches = customers.filter((c) => {
-    const p = normPhone(buyerPhone);
-    const n = normName(buyerName);
-    if (!p && !n) return false;
-    return (p && normPhone(c.phone).includes(p)) || (n && normName(c.display_name).includes(n));
-  }).slice(0, 6);
+    : customers.find(
+        (c) =>
+          (buyerPhone && normPhone(c.phone) === normPhone(buyerPhone)) ||
+          (buyerName && normName(c.display_name) === normName(buyerName)),
+      );
+  const customerMatches = customers
+    .filter((c) => {
+      const p = normPhone(buyerPhone);
+      const n = normName(buyerName);
+      if (!p && !n) return false;
+      return (p && normPhone(c.phone).includes(p)) || (n && normName(c.display_name).includes(n));
+    })
+    .slice(0, 6);
 
   function chooseCustomer(c) {
     setSelectedCustomerId(c.id);
@@ -91,14 +124,18 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
   }
 
   function syncByPhone(value) {
-    setBuyerPhone(value); setSelectedCustomerId(null); setCustomerListOpen(true);
+    setBuyerPhone(value);
+    setSelectedCustomerId(null);
+    setCustomerListOpen(true);
     const p = normPhone(value);
     const found = p ? customers.find((c) => normPhone(c.phone) === p) : null;
     if (found) chooseCustomer(found);
   }
 
   function syncByName(value) {
-    setBuyerName(value); setSelectedCustomerId(null); setCustomerListOpen(true);
+    setBuyerName(value);
+    setSelectedCustomerId(null);
+    setCustomerListOpen(true);
     const n = normName(value);
     const found = n ? customers.find((c) => normName(c.display_name) === n) : null;
     if (found) chooseCustomer(found);
@@ -112,9 +149,14 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
 
     setBusy(true);
     try {
-      const customerId = reason === 'sold'
-        ? await ensurePurchaseCustomer({ id: matchedCustomer?.id, displayName: buyerName, phone: buyerPhone })
-        : null;
+      const customerId =
+        reason === 'sold'
+          ? await ensurePurchaseCustomer({
+              id: matchedCustomer?.id,
+              displayName: buyerName,
+              phone: buyerPhone,
+            })
+          : null;
       const res = await archiveDevice(device.sheetRow, {
         reason,
         buyerName: buyerName.trim(),
@@ -136,6 +178,9 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
           archiveDate: res.archiveDate,
           username,
           seller,
+          sellerBranch,
+          sellerPhone,
+          issuerBranch: primaryBranch || device.branch || '',
         });
       }
 
@@ -176,8 +221,12 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
           />
           {passErr && <p className="text-xs font-bold text-danger">{passErr}</p>}
           <div className="flex gap-2">
-            <Button className="flex-1" onClick={checkPass}>متابعة</Button>
-            <Button variant="plain" onClick={onClose}>إلغاء</Button>
+            <Button className="flex-1" onClick={checkPass}>
+              متابعة
+            </Button>
+            <Button variant="plain" onClick={onClose}>
+              إلغاء
+            </Button>
           </div>
         </div>
       ) : (
@@ -190,20 +239,43 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
               onChange={(e) => setSeller(e.target.value)}
               className="w-full rounded-xl border border-border bg-input px-3 py-2.5 text-sm text-text outline-none focus:border-accent"
             >
-              {[...new Set([display, ...sellers].filter(Boolean))].map((s) => (
-                <option key={s} value={s}>{s}</option>
+              {[
+                ...new Map(
+                  [{ display_name: display, branch: primaryBranch }, ...sellers]
+                    .filter((x) => x.display_name)
+                    .map((x) => [x.display_name, x]),
+                ).values(),
+              ].map((s) => (
+                <option key={s.display_name} value={s.display_name}>
+                  {s.display_name}
+                  {s.branch ? ` — ${s.branch}` : ''}
+                </option>
               ))}
             </select>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <Input label="فرع البائع" value={sellerBranch} readOnly disabled />
+              <Input label="هاتف البائع (هاتف الفرع)" value={sellerPhone} readOnly disabled />
+            </div>
           </div>
 
           {/* السبب */}
           <div>
             <label className="mb-1.5 block text-xs font-bold text-muted">سبب الأرشفة *</label>
             <div className="flex gap-2">
-              <button type="button" className={toggleCls(reason === 'sold')}
-                      onClick={() => setReason('sold')}>💰 تم البيع</button>
-              <button type="button" className={toggleCls(reason === 'return')}
-                      onClick={() => setReason('return')}>↩️ مرتجع للبائع</button>
+              <button
+                type="button"
+                className={toggleCls(reason === 'sold')}
+                onClick={() => setReason('sold')}
+              >
+                💰 تم البيع
+              </button>
+              <button
+                type="button"
+                className={toggleCls(reason === 'return')}
+                onClick={() => setReason('return')}
+              >
+                ↩️ مرتجع للبائع
+              </button>
             </div>
           </div>
 
@@ -211,36 +283,64 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
           {reason === 'sold' && (
             <div className="space-y-3 rounded-2xl border border-border bg-surface/50 p-3">
               <div className="relative">
-                <Input label="رقم هاتف المشتري" value={buyerPhone}
-                       onFocus={() => setCustomerListOpen(true)}
-                       onChange={(e) => syncByPhone(e.target.value)} inputMode="tel" />
+                <Input
+                  label="رقم هاتف المشتري"
+                  value={buyerPhone}
+                  onFocus={() => setCustomerListOpen(true)}
+                  onChange={(e) => syncByPhone(e.target.value)}
+                  inputMode="tel"
+                />
                 {matchedCustomer && (
-                  <span className="absolute end-3 top-8 text-sm font-black text-green-600" title="عميل موجود">✓</span>
+                  <span
+                    className="absolute end-3 top-8 text-sm font-black text-green-600"
+                    title="عميل موجود"
+                  >
+                    ✓
+                  </span>
                 )}
                 {customerListOpen && customerMatches.length > 0 && (
                   <div className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-border bg-card shadow-xl">
                     {customerMatches.map((c) => (
-                      <button key={c.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => chooseCustomer(c)}
-                              className="block w-full border-b border-border px-3 py-2 text-start last:border-0 hover:bg-surface">
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => chooseCustomer(c)}
+                        className="block w-full border-b border-border px-3 py-2 text-start last:border-0 hover:bg-surface"
+                      >
                         <span className="block text-sm font-black text-text">{c.display_name}</span>
-                        <span className="num block text-xs text-muted">{c.phone || 'بدون رقم'}</span>
+                        <span className="num block text-xs text-muted">
+                          {c.phone || 'بدون رقم'}
+                        </span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
               <div className="relative">
-                <Input label="اسم المشتري *" value={buyerName}
-                       onFocus={() => setCustomerListOpen(true)}
-                       onChange={(e) => syncByName(e.target.value)} />
+                <Input
+                  label="اسم المشتري *"
+                  value={buyerName}
+                  onFocus={() => setCustomerListOpen(true)}
+                  onChange={(e) => syncByName(e.target.value)}
+                />
                 {matchedCustomer && (
-                  <span className="absolute end-3 top-8 text-sm font-black text-green-600" title="عميل موجود">✓</span>
+                  <span
+                    className="absolute end-3 top-8 text-sm font-black text-green-600"
+                    title="عميل موجود"
+                  >
+                    ✓
+                  </span>
                 )}
               </div>
               {matchedCustomer ? (
-                <p className="text-xs font-black text-green-600">✓ عميل موجود — تم ربط الاسم ورقم الهاتف تلقائيًا</p>
-              ) : (buyerName.trim() || buyerPhone.trim()) ? (
-                <p className="text-xs font-bold text-muted">عميل جديد — سيُضاف إلى قائمة العملاء عند إتمام الأرشفة.</p>
+                <p className="text-xs font-black text-green-600">
+                  ✓ عميل موجود — تم ربط الاسم ورقم الهاتف تلقائيًا
+                </p>
+              ) : buyerName.trim() || buyerPhone.trim() ? (
+                <p className="text-xs font-bold text-muted">
+                  عميل جديد — سيُضاف إلى قائمة العملاء عند إتمام الأرشفة.
+                </p>
               ) : null}
             </div>
           )}
@@ -249,24 +349,42 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
           <div>
             <label className="mb-1.5 block text-xs font-bold text-muted">تسجيل IMEI؟</label>
             <div className="flex gap-2">
-              <button type="button" className={toggleCls(wantImei)}
-                      onClick={() => setWantImei(true)}>نعم</button>
-              <button type="button" className={toggleCls(!wantImei)}
-                      onClick={() => setWantImei(false)}>لا</button>
+              <button
+                type="button"
+                className={toggleCls(wantImei)}
+                onClick={() => setWantImei(true)}
+              >
+                نعم
+              </button>
+              <button
+                type="button"
+                className={toggleCls(!wantImei)}
+                onClick={() => setWantImei(false)}
+              >
+                لا
+              </button>
             </div>
-            {wantImei && (
-              <ImeiInput className="mt-2" value={imei} onChange={setImei} />
-            )}
+            {wantImei && <ImeiInput className="mt-2" value={imei} onChange={setImei} />}
           </div>
 
           {/* طباعة الإيصال */}
           <div>
             <label className="mb-1.5 block text-xs font-bold text-muted">طباعة إيصال؟</label>
             <div className="flex gap-2">
-              <button type="button" className={toggleCls(wantPrint)}
-                      onClick={() => setWantPrint(true)}>🖨️ نعم</button>
-              <button type="button" className={toggleCls(!wantPrint)}
-                      onClick={() => setWantPrint(false)}>لا</button>
+              <button
+                type="button"
+                className={toggleCls(wantPrint)}
+                onClick={() => setWantPrint(true)}
+              >
+                🖨️ نعم
+              </button>
+              <button
+                type="button"
+                className={toggleCls(!wantPrint)}
+                onClick={() => setWantPrint(false)}
+              >
+                لا
+              </button>
             </div>
           </div>
 
@@ -280,7 +398,9 @@ export default function ArchiveModal({ device, onArchived, onClose }) {
             <Button className="flex-1" loading={busy} onClick={confirm}>
               {busy ? 'جاري الأرشفة...' : '📦 أرشفة'}
             </Button>
-            <Button variant="plain" onClick={onClose} disabled={busy}>إلغاء</Button>
+            <Button variant="plain" onClick={onClose} disabled={busy}>
+              إلغاء
+            </Button>
           </div>
         </div>
       )}

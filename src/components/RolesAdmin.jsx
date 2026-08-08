@@ -146,13 +146,13 @@ export default function RolesAdmin() {
   useEffect(() => {
     if (selectedKey || !roles.length) return;
     setSelectedKey((customs[0] || roles[0]).key);
-  }, [roles]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [roles]);
 
   // المسوّدة بترجع لقيم الدور كل ما الاختيار يتغيّر
   useEffect(() => {
     if (!selected) { setDraft(null); return; }
     setDraft(permsOf(selected));
-  }, [selectedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedKey]);
 
   // كل الأدوار قابلة لتعديل الصلاحيات ما عدا الأدمن؛ الأدمن كامل دائمًا.
   const editable = !!selected && !(selected.is_admin || selected.key === 'admin');

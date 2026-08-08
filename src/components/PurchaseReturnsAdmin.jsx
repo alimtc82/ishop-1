@@ -55,12 +55,10 @@ export default function PurchaseReturnsAdmin() {
 
   const treasuries = useMemo(
     () => allTreasuries.filter(x => !x.branch || canAccessBranch(x.branch)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allTreasuries, branches, canSeeAllBranches],
   );
   const returnRows = useMemo(
     () => allReturns.filter(x => !x.branch || canAccessBranch(x.branch)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allReturns, branches, canSeeAllBranches],
   );
 
@@ -78,7 +76,6 @@ export default function PurchaseReturnsAdmin() {
     () => allInvoices
       .filter(x => !x.branch || canAccessBranch(x.branch))
       .filter(x => remainingOf(x).totalRemaining > 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allInvoices, returnedMap, branches, canSeeAllBranches],
   );
 
@@ -86,7 +83,6 @@ export default function PurchaseReturnsAdmin() {
   const invItems = inv ? remainingOf(inv).items.filter(x => x.remaining > 0) : [];
   const selected = useMemo(
     () => invItems.filter(x => Number(qty[x.id] || 0) > 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [inv, qty, returnedMap],
   );
   const total = selected.reduce((s, x) => s + Number(qty[x.id]) * Number(x.unit_cost), 0);

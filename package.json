@@ -1,19 +1,20 @@
 {
   "name": "ishop",
   "private": true,
-  "version": "15.5.6",
+  "version": "15.5.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "mkdir -p public && cp app-tech-og.png public/app-tech-og.png && vite build",
+    "prebuild": "node -e \"const fs=require('fs');fs.mkdirSync('public',{recursive:true});fs.copyFileSync('app-tech-og.png','public/app-tech-og.png')\"",
+    "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .js,.jsx --fix || true",
+    "lint": "eslint src --ext .js,.jsx",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\"",
-    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" || true",
-    "test": "jest --passWithNoTests || true",
-    "test:watch": "jest --watch || true",
-    "test:coverage": "jest --coverage || true",
-    "type-check": "tsc --noEmit || true"
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\"",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
