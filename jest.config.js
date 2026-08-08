@@ -1,5 +1,6 @@
 export default {
   testEnvironment: 'jsdom',
+  roots: ['<rootDir>/src'],
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
@@ -22,8 +23,4 @@ export default {
       statements: 50,
     },
   },
-  testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.{js,jsx}',
-    '<rootDir>/src/**/*.{spec,test}.{js,jsx}',
-  ],
 };

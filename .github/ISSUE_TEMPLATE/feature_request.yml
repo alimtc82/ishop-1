@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a focused improvement for iShop
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the user or business need without prescribing unrelated implementation changes.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Explicitly out of scope
+      description: Identify behavior that must remain unchanged.
+  - type: checkboxes
+    id: sensitive_scope
+    attributes:
+      label: Expected impact
+      options:
+        - label: Business logic changes are explicitly required.
+        - label: Supabase/database/authentication/RLS changes are explicitly required.
+        - label: A backward-incompatible change is explicitly required.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Provide testable conditions, including mobile/RTL/accessibility needs where relevant.
+    validations:
+      required: true
