@@ -6,6 +6,69 @@ import ERPDocumentViewer from './ERPDocumentViewer';
 
 const I = 'w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text';
 
+function HighlightedSerial({ value, query }) {
+  const text = String(value || '');
+  const needle = String(query || '').trim();
+  const index = needle ? text.toLowerCase().indexOf(needle.toLowerCase()) : -1;
+  if (index < 0) return <span>{text}</span>;
+  return (
+    <span>
+      {text.slice(0, index)}
+      <mark className="rounded bg-amber-300 px-0.5 font-black text-black">
+        {text.slice(index, index + needle.length)}
+      </mark>
+      {text.slice(index + needle.length)}
+    </span>
+  );
+}
+
+function SerialReturnPicker({ available, selected, onChange }) {
+  const [query, setQuery] = useState('');
+  const matches = available.filter(
+    (serial) => !query.trim() || serial.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+  const toggle = (serial) =>
+    onChange(
+      selected.includes(serial) ? selected.filter((x) => x !== serial) : [...selected, serial],
+    );
+  return (
+    <div className="rounded-xl border border-border bg-surface p-2">
+      <input
+        dir="ltr"
+        className={I}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="ابحث بأي جزء من السيريال / IMEI"
+      />
+      <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-border bg-card">
+        {matches.map((serial) => {
+          const checked = selected.includes(serial);
+          return (
+            <button
+              type="button"
+              dir="ltr"
+              key={serial}
+              onClick={() => toggle(serial)}
+              className={`flex w-full items-center justify-between border-b border-border px-3 py-2 text-left text-sm last:border-0 ${checked ? 'bg-accent-soft font-black text-accent' : 'hover:bg-surface'}`}
+            >
+              <HighlightedSerial value={serial} query={query} />
+              <span>{checked ? '✓' : '○'}</span>
+            </button>
+          );
+        })}
+        {!matches.length && (
+          <div className="p-3 text-center text-xs text-muted">
+            لا يوجد سيريال مطابق متاح للمرتجع.
+          </div>
+        )}
+      </div>
+      <div className="mt-2 text-xs font-bold text-muted">
+        تم اختيار {selected.length} من {available.length}
+      </div>
+    </div>
+  );
+}
+
 export default function SalesReturnsAdmin() {
   const {
     branches,
@@ -19,6 +82,7 @@ export default function SalesReturnsAdmin() {
   const [allTreasuries, setAllTreasuries] = useState([]);
   const [allReturns, setAllReturns] = useState([]);
   const [returnedMap, setReturnedMap] = useState({}); // { invoiceId: { productId: returnedQty } }
+  const [returnedSerials, setReturnedSerials] = useState({});
   const [invoice, setInvoice] = useState('');
   const [qty, setQty] = useState({});
   const [serials, setSerials] = useState({});
@@ -51,10 +115,11 @@ export default function SalesReturnsAdmin() {
     }
     const ids = (invs || []).map((i) => i.id);
     const map = {};
+    let serialMap = {};
     if (ids.length) {
       const { data: rets } = await supabase
         .from('sales_returns')
-        .select('sales_invoice_id,status,sales_return_items(product_id,quantity)')
+        .select('sales_invoice_id,status,sales_return_items(product_id,quantity,serial_numbers)')
         .eq('status', 'posted')
         .in('sales_invoice_id', ids);
       (rets || []).forEach((r) =>
@@ -62,9 +127,12 @@ export default function SalesReturnsAdmin() {
           map[r.sales_invoice_id] = map[r.sales_invoice_id] || {};
           map[r.sales_invoice_id][it.product_id] =
             (map[r.sales_invoice_id][it.product_id] || 0) + Number(it.quantity || 0);
+          const key = `${r.sales_invoice_id}:${it.product_id}`;
+          serialMap[key] = [...(serialMap[key] || []), ...(it.serial_numbers || [])];
         }),
       );
     }
+    setReturnedSerials(serialMap);
     setReturnedMap(map);
   };
 
@@ -130,12 +198,9 @@ export default function SalesReturnsAdmin() {
       }
       const lines = selected.map((x) => {
         const q = Number(qty[x.id]);
-        const ss = x.products?.serial_tracked
-          ? (serials[x.id] || '')
-              .split(/[\n,]+/)
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : [];
+        const ss = x.products?.serial_tracked ? serials[x.id] || [] : [];
+        if (x.products?.serial_tracked && ss.length !== q)
+          throw Error(`اختر ${q} سيريال للصنف ${x.products?.name || ''}.`);
         return { item_id: x.id, quantity: q, serial_numbers: ss };
       });
       const { data, error } = await supabase.rpc('post_sales_return_tx', {
@@ -194,17 +259,25 @@ export default function SalesReturnsAdmin() {
             min="0"
             max={x.remaining}
             step={x.products?.serial_tracked ? '1' : '0.001'}
-            value={qty[x.id] || ''}
+            value={x.products?.serial_tracked ? (serials[x.id] || []).length : qty[x.id] || ''}
+            readOnly={x.products?.serial_tracked}
             onChange={(e) => setQty({ ...qty, [x.id]: e.target.value })}
             placeholder="المرتجع"
           />
-          <textarea
-            className={I}
-            disabled={!x.products?.serial_tracked}
-            value={serials[x.id] || ''}
-            onChange={(e) => setSerials({ ...serials, [x.id]: e.target.value })}
-            placeholder={x.products?.serial_tracked ? 'السريلات المرتجعة' : 'غير متتبع'}
-          />
+          {x.products?.serial_tracked ? (
+            <SerialReturnPicker
+              available={(x.serial_numbers || []).filter(
+                (serial) => !(returnedSerials[`${inv.id}:${x.product_id}`] || []).includes(serial),
+              )}
+              selected={serials[x.id] || []}
+              onChange={(value) => {
+                setSerials({ ...serials, [x.id]: value });
+                setQty({ ...qty, [x.id]: value.length });
+              }}
+            />
+          ) : (
+            <div className={`${I} text-muted`}>صنف غير متتبع بالسيريال</div>
+          )}
         </div>
       ))}
       <div className="mt-3 grid gap-2 md:grid-cols-2">
