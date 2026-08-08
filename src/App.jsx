@@ -20,6 +20,7 @@ import ShopProducts from './pages/ShopProducts';
 import ShopCategories from './pages/ShopCategories';
 import ShopProductDetails from './pages/ShopProductDetails';
 import GuestShell from './GuestShell';
+import PublicInvoice from './pages/PublicInvoice';
 
 // ══ كل حاجة ليها علاقة بالحسابات في chunks مؤجّلة ═══════════════
 // الـ bundle اللي بيوصل للزائر مافيهوش أي أثر لوجود تسجيل دخول.
@@ -37,6 +38,7 @@ function AppShell() {
   // لينك جهاز مشترك (/d/...) يفتحه زائر جديد → يدخل وضع الزائر مرة واحدة بعد
   // الإقلاع. مرة واحدة عشان الخروج/الرئيسية بعد كده ما يرجّعوش لوضع الزائر.
   const isDeviceLink = /^\/d\//.test(location.pathname);
+  const isPublicInvoice = /^\/invoice\/[0-9a-f-]+$/i.test(location.pathname);
   const autoGuestDone = useRef(false);
   useEffect(() => {
     if (booting || autoGuestDone.current) return;
@@ -49,7 +51,10 @@ function AppShell() {
   }, [show, _onIdleRef]);
 
   useEffect(() => {
-    if (!isRecoveryLink()) { setRecovery(false); return; }
+    if (!isRecoveryLink()) {
+      setRecovery(false);
+      return;
+    }
     exchangeRecoveryToken().then((ok) => {
       setRecovery(ok);
       if (!ok) show('❌ الرابط منتهي أو مستخدم قبل كده', 'error');
@@ -57,6 +62,8 @@ function AppShell() {
   }, [show]);
 
   if (booting || recovery === null) return <Splash />;
+
+  if (isPublicInvoice) return <PublicInvoice />;
 
   if (recovery) {
     return (
@@ -88,11 +95,21 @@ function AppShell() {
 
     // واجهة المتجر العامة — المنتجات والأقسام وتفاصيل المنتج
     if (/^\/product\//.test(location.pathname)) {
-      return <><Splash /><ShopProductDetails /></>;
+      return (
+        <>
+          <Splash />
+          <ShopProductDetails />
+        </>
+      );
     }
     if (location.pathname === '/categories') return <ShopCategories />;
     if (/^\/products/.test(location.pathname)) {
-      return <><Splash /><ShopProducts /></>;
+      return (
+        <>
+          <Splash />
+          <ShopProducts />
+        </>
+      );
     }
 
     // معرض الأجهزة المستعملة — /used  (رجعت كصفحة مستقلة في V11.50)

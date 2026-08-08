@@ -15,7 +15,7 @@
 //  ⚠️ يظهر في واجهة الموظفين (StaffShell) وشاشة الدخول (Login).
 //  ⚠️ كل رقم بيتسجّل بسطر في CHANGELOG.md.
 // ════════════════════════════════════════════════════════════════
-export const APP_VERSION = 'V15.5.6';
+export const APP_VERSION = 'V15.5.8';
 
 export const PAGE_SIZE = 30;
 export const IDLE_MINUTES = 20;
@@ -23,10 +23,31 @@ export const MAX_IMG_SIZE = 800; // أقصى عرض/ارتفاع بعد الضغ
 
 // الأعمدة المسموح للزائر يشوفها — منقولة حرفيًا من v4.5.1
 export const GUEST_DEVICE_COLS = [
-  'id', 'device_code', 'model', 'brand', 'storage', 'battery', 'cycles',
-  'color', 'sim', 'box', 'repair', 'tax', 'warranty', 'warranty_date',
-  'lock', 'defects', 'extras', 'imei', 'price', 'notes', 'addedby',
-  'phone', 'date', 'archived', 'images',
+  'id',
+  'device_code',
+  'model',
+  'brand',
+  'storage',
+  'battery',
+  'cycles',
+  'color',
+  'sim',
+  'box',
+  'repair',
+  'tax',
+  'warranty',
+  'warranty_date',
+  'lock',
+  'defects',
+  'extras',
+  'imei',
+  'price',
+  'notes',
+  'addedby',
+  'phone',
+  'date',
+  'archived',
+  'images',
 ].join(',');
 
 /**
@@ -35,11 +56,38 @@ export const GUEST_DEVICE_COLS = [
  * مستبعَد عمدًا: price, notes, imgs_removed, customer_id (لا تُقرأ من نتيجة القائمة).
  */
 export const DEVICE_COLS = [
-  'id', 'device_code', 'model', 'brand', 'images', 'storage', 'battery',
-  'cycles', 'color', 'sim', 'box', 'repair', 'tax', 'warranty', 'warranty_date',
-  'lock', 'defects', 'extras', 'addedby', 'phone', 'date',
-  'archived', 'archive_reason', 'buyer_name', 'buyer_phone', 'archive_date',
-  'archived_at', 'archived_by', 'archived_seller', 'imei', 'owner_id', 'branch',
+  'id',
+  'device_code',
+  'model',
+  'brand',
+  'images',
+  'storage',
+  'battery',
+  'cycles',
+  'color',
+  'sim',
+  'box',
+  'repair',
+  'tax',
+  'warranty',
+  'warranty_date',
+  'lock',
+  'defects',
+  'extras',
+  'addedby',
+  'phone',
+  'date',
+  'archived',
+  'archive_reason',
+  'buyer_name',
+  'buyer_phone',
+  'archive_date',
+  'archived_at',
+  'archived_by',
+  'archived_seller',
+  'imei',
+  'owner_id',
+  'branch',
 ].join(',');
 
 // مفاتيح localStorage — لازم تفضل بأسمائها عشان المستخدمين الحاليين
